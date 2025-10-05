@@ -6,12 +6,14 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
 import { ArrowLeft, CheckCircle, XCircle, Clock, AlertTriangle, Trophy } from 'lucide-react';
-import type { TestAttempt, Question, Answer, Round } from '@shared/schema';
+import type { TestAttempt, Question, Answer, Round, Event } from '@shared/schema';
 
 interface TestAttemptWithDetails extends TestAttempt {
   round: Round;
   questions: Question[];
   answers: Answer[];
+  event?: Event;
+  eventEnded?: boolean;
 }
 
 export default function TestResultsPage() {
@@ -38,6 +40,51 @@ export default function TestResultsPage() {
       <ParticipantLayout>
         <div className="p-8">
           <div className="text-center py-12">Test results not found</div>
+        </div>
+      </ParticipantLayout>
+    );
+  }
+
+  // Check if event has ended
+  const eventEnded = attempt.eventEnded ?? true; // Default to true for safety
+
+  // If event hasn't ended, show submission confirmation
+  if (!eventEnded) {
+    return (
+      <ParticipantLayout>
+        <div className="p-8 max-w-3xl mx-auto">
+          <Card className="border-2 border-green-200 bg-green-50">
+            <CardHeader>
+              <div className="text-center">
+                <CheckCircle className="h-16 w-16 text-green-600 mx-auto mb-4" data-testid="icon-submission-success" />
+                <CardTitle className="text-2xl text-green-900">Submission Received</CardTitle>
+              </div>
+            </CardHeader>
+            <CardContent>
+              <div className="text-center space-y-4">
+                <p className="text-green-800 text-lg" data-testid="text-submission-message">
+                  ✅ Your responses have been successfully submitted.
+                </p>
+                <p className="text-green-700" data-testid="text-wait-message">
+                  Please wait until the event concludes to view your results.
+                </p>
+                {attempt.event?.endDate && (
+                  <p className="text-sm text-green-600" data-testid="text-event-end-time">
+                    Event ends: {new Date(attempt.event.endDate).toLocaleString()}
+                  </p>
+                )}
+              </div>
+            </CardContent>
+          </Card>
+          <div className="mt-6 flex justify-center">
+            <Button
+              onClick={() => setLocation('/participant/dashboard')}
+              size="lg"
+              data-testid="button-back-to-dashboard"
+            >
+              Back to Dashboard
+            </Button>
+          </div>
         </div>
       </ParticipantLayout>
     );

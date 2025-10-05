@@ -29,7 +29,7 @@ export default function TakeTestPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<Record<string, string>>({});
   const [timeRemaining, setTimeRemaining] = useState(0);
-  const [violations, setViolations] = useState({ tabSwitch: 0, fullscreenExit: 0, refresh: 0 });
+  const [violationCount, setViolationCount] = useState(0);
   const [showViolationWarning, setShowViolationWarning] = useState(false);
   const [violationMessage, setViolationMessage] = useState('');
   const [hasStarted, setHasStarted] = useState(false);
@@ -243,31 +243,45 @@ export default function TakeTestPage() {
 
     apiRequest('POST', `/api/attempts/${attemptId}/violations`, { type }).catch(console.error);
 
-    if (type === 'tab_switch') {
-      setViolations(prev => ({ ...prev, tabSwitch: prev.tabSwitch + 1 }));
+    setViolationCount(prev => {
+      const newCount = prev + 1;
       
-      toast({
-        title: 'DISQUALIFIED',
-        description: 'You have been disqualified for tab switching',
-        variant: 'destructive',
-      });
+      if (newCount === 1) {
+        // First violation - Show warning
+        setViolationMessage('⚠️ You are not allowed to use shortcuts or leave the test screen. Further attempts will eliminate you.');
+        setShowViolationWarning(true);
+        toast({
+          title: '⚠️ Warning #1',
+          description: 'You are not allowed to use shortcuts or leave the test screen. Further attempts will eliminate you.',
+          variant: 'destructive',
+        });
+        setTimeout(() => setShowViolationWarning(false), 5000);
+      } else if (newCount === 2) {
+        // Second violation - Final warning
+        setViolationMessage('⚠️ Final warning! Another attempt will eliminate you.');
+        setShowViolationWarning(true);
+        toast({
+          title: '⚠️ Warning #2 - FINAL WARNING',
+          description: 'Another attempt will eliminate you from this event.',
+          variant: 'destructive',
+        });
+        setTimeout(() => setShowViolationWarning(false), 5000);
+      } else if (newCount >= 3) {
+        // Third violation - Eliminate
+        setViolationMessage('❌ You have been eliminated for violating event rules.');
+        setShowViolationWarning(true);
+        toast({
+          title: '❌ ELIMINATED',
+          description: 'You have been eliminated for violating event rules. Your test will be auto-submitted.',
+          variant: 'destructive',
+        });
+        
+        disqualifyMutation.mutate();
+        setTimeout(() => submitTestMutation.mutate(), 2000);
+      }
       
-      disqualifyMutation.mutate();
-      setTimeout(() => submitTestMutation.mutate(), 1000);
-    } else if (type === 'fullscreen_exit') {
-      setViolations(prev => ({ ...prev, fullscreenExit: prev.fullscreenExit + 1 }));
-      
-      toast({
-        title: 'DISQUALIFIED',
-        description: 'You have been disqualified for exiting fullscreen',
-        variant: 'destructive',
-      });
-      
-      disqualifyMutation.mutate();
-      setTimeout(() => submitTestMutation.mutate(), 1000);
-    } else if (type === 'refresh') {
-      setViolations(prev => ({ ...prev, refresh: prev.refresh + 1 }));
-    }
+      return newCount;
+    });
   }, [attemptId, disqualifyMutation, submitTestMutation, toast]);
 
   // Fullscreen enforcement after test started
@@ -277,7 +291,10 @@ export default function TakeTestPage() {
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement && testStatusRef.current === 'in_progress') {
         logViolation('fullscreen_exit');
-        setShowFullscreenModal(true);
+        // Don't allow re-entering if already eliminated (3+ violations)
+        if (violationCount < 3) {
+          setShowFullscreenModal(true);
+        }
       }
     };
 
@@ -286,7 +303,7 @@ export default function TakeTestPage() {
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [rules?.forceFullscreen, hasStarted, logViolation]);
+  }, [rules?.forceFullscreen, hasStarted, logViolation, violationCount]);
 
   // Cleanup fullscreen only on unmount
   useEffect(() => {
@@ -401,6 +418,27 @@ export default function TakeTestPage() {
         return;
       }
 
+      // Block Alt+Tab (triggers violation)
+      if (e.altKey && e.key === 'Tab') {
+        e.preventDefault();
+        logViolation('alt_tab');
+        return;
+      }
+
+      // Block F11 fullscreen toggle (triggers violation)
+      if (e.key === 'F11') {
+        e.preventDefault();
+        logViolation('f11_fullscreen');
+        return;
+      }
+
+      // Block Ctrl+T new tab (triggers violation)
+      if (e.ctrlKey && e.key === 't') {
+        e.preventDefault();
+        logViolation('ctrl_t');
+        return;
+      }
+
       // Block developer tools and other shortcuts if disableShortcuts is enabled
       if (rules?.disableShortcuts) {
         if (
@@ -411,11 +449,7 @@ export default function TakeTestPage() {
           (e.ctrlKey && e.key === 'u')
         ) {
           e.preventDefault();
-          toast({
-            title: 'Action blocked',
-            description: 'This shortcut is disabled during the test',
-            variant: 'destructive',
-          });
+          logViolation('restricted_shortcut');
         }
       }
     };
@@ -499,10 +533,7 @@ export default function TakeTestPage() {
 
   const currentQuestion: Question & { questionText: string } = attempt.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / attempt.questions.length) * 100;
-  
-  const getQuestionText = (): string => {
-    return String(currentQuestion.questionText || '');
-  };
+  const questionText: string = String(currentQuestion.questionText || '');
 
   // Show begin test screen
   if (!hasStarted) {
@@ -613,7 +644,7 @@ export default function TakeTestPage() {
             {rules?.autoSubmitOnViolation && (
               <Badge variant="outline" className="flex items-center gap-2">
                 <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                Violations: {violations.tabSwitch + violations.fullscreenExit}/{rules.maxTabSwitchWarnings}
+                Violations: {violationCount}/3
               </Badge>
             )}
             <div className={`flex items-center gap-2 px-4 py-2 rounded-lg ${
@@ -673,7 +704,7 @@ export default function TakeTestPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-lg" data-testid="text-question">
-              {getQuestionText()}
+              {questionText}
             </div>
 
             {/* Multiple Choice */}
@@ -682,11 +713,11 @@ export default function TakeTestPage() {
                 value={answers[currentQuestion.id] || ''}
                 onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
               >
-                {(currentQuestion.options as string[]).map((option, index) => (
+                {Array.isArray(currentQuestion.options) && currentQuestion.options.map((option: any, index: number) => (
                   <div key={index} className="flex items-center space-x-2 p-3 rounded border hover:bg-gray-50">
-                    <RadioGroupItem value={option as string} id={`option-${index}`} data-testid={`radio-option-${index}`} />
+                    <RadioGroupItem value={String(option)} id={`option-${index}`} data-testid={`radio-option-${index}`} />
                     <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
-                      {option as string}
+                      {String(option)}
                     </Label>
                   </div>
                 ))}

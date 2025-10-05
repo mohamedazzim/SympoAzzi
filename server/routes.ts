@@ -1315,13 +1315,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const round = await storage.getRound(attempt.roundId)
       const questions = await storage.getQuestionsByRound(attempt.roundId)
       const answers = await storage.getAnswersByAttempt(attempt.id)
+      
+      // Get event to check if it has ended
+      const event = round ? await storage.getEvent(round.eventId) : null
 
-      res.json({
+      // Check if event has ended (for participants only)
+      const eventEnded = event?.endDate ? new Date() > new Date(event.endDate) : false
+      const isAdmin = req.user!.role === "super_admin" || req.user!.role === "event_admin"
+
+      // Hide scores and answers if event hasn't ended (for participants only)
+      let responseData: any = {
         ...attempt,
         round,
         questions,
         answers,
-      })
+        event,
+        eventEnded,
+      }
+
+      if (!eventEnded && !isAdmin && req.user!.role === "participant") {
+        // Hide sensitive data until event ends
+        responseData = {
+          ...attempt,
+          totalScore: null,
+          maxScore: null,
+          round: {
+            ...round,
+          },
+          questions: questions.map((q: any) => ({
+            ...q,
+            correctAnswer: null, // Hide correct answers
+          })),
+          answers: answers.map((a: any) => ({
+            ...a,
+            isCorrect: null, // Hide correctness
+            pointsAwarded: null, // Hide points
+          })),
+          event,
+          eventEnded,
+        }
+      }
+
+      res.json(responseData)
     } catch (error) {
       console.error("Get test attempt error:", error)
       res.status(500).json({ message: "Internal server error" })
