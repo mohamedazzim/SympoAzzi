@@ -3,7 +3,8 @@ import { useQuery } from '@tanstack/react-query';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { Download, Printer, ArrowLeft } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
+import { Download, Printer, ArrowLeft, FileDown } from 'lucide-react';
 import EventAdminLayout from '@/components/layouts/EventAdminLayout';
 import type { Event } from '@shared/schema';
 
@@ -21,6 +22,7 @@ interface EventCredentialWithDetails {
     fullName: string;
   };
   event: Event;
+  paymentStatus?: 'pending' | 'paid' | 'declined';
 }
 
 export default function EventParticipantsPage() {
@@ -37,13 +39,35 @@ export default function EventParticipantsPage() {
     enabled: !!eventId,
   });
   
+  const handleDownloadIdPass = (credentialId: string) => {
+    window.open(`/api/event-credentials/${credentialId}/id-pass`, '_blank');
+  };
+
+  const getPaymentStatusBadge = (status?: string) => {
+    const statusValue = status || 'pending';
+    const variants: Record<string, { variant: 'default' | 'secondary' | 'destructive', color: string }> = {
+      paid: { variant: 'default', color: 'bg-green-100 text-green-800' },
+      pending: { variant: 'secondary', color: 'bg-yellow-100 text-yellow-800' },
+      declined: { variant: 'destructive', color: 'bg-red-100 text-red-800' },
+    };
+
+    const badgeInfo = variants[statusValue] || variants.pending;
+
+    return (
+      <Badge className={badgeInfo.color} data-testid={`badge-payment-${statusValue}`}>
+        {statusValue.toUpperCase()}
+      </Badge>
+    );
+  };
+
   const handleExport = () => {
-    const headers = ['Participant Name', 'Event Name', 'Event Username', 'Event Password', 'Signature'];
+    const headers = ['Participant Name', 'Event Name', 'Event Username', 'Event Password', 'Payment Status', 'Signature'];
     const rows = credentials.map(c => [
       c.participant.fullName,
       c.event.name,
       c.eventUsername,
       c.eventPassword,
+      (c.paymentStatus || 'pending').toUpperCase(),
       '________________',
     ]);
     
@@ -163,7 +187,9 @@ export default function EventParticipantsPage() {
                     <TableHead>Participant Name</TableHead>
                     <TableHead>Event Username</TableHead>
                     <TableHead>Event Password</TableHead>
+                    <TableHead>Payment Status</TableHead>
                     <TableHead>Registration Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -178,8 +204,22 @@ export default function EventParticipantsPage() {
                       <TableCell className="font-mono" data-testid={`text-password-${cred.id}`}>
                         {cred.eventPassword}
                       </TableCell>
+                      <TableCell data-testid={`text-payment-${cred.id}`}>
+                        {getPaymentStatusBadge(cred.paymentStatus)}
+                      </TableCell>
                       <TableCell data-testid={`text-date-${cred.id}`}>
                         {new Date(cred.createdAt).toLocaleDateString()}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDownloadIdPass(cred.id)}
+                          data-testid={`button-download-pdf-${cred.id}`}
+                        >
+                          <FileDown className="h-4 w-4 mr-2" />
+                          ID Pass
+                        </Button>
                       </TableCell>
                     </TableRow>
                   ))}

@@ -883,6 +883,28 @@ export class DatabaseStorage implements IStorage {
       form: r.form
     };
   }
+
+  async getRegistrationByUserId(userId: string): Promise<any | undefined> {
+    const result = await db.select({
+      registration: registrations,
+      form: registrationForms
+    })
+    .from(registrations)
+    .leftJoin(registrationForms, eq(registrations.formId, registrationForms.id))
+    .where(eq(registrations.participantUserId, userId));
+    
+    if (result.length === 0) return undefined;
+    
+    const r = result[0];
+    const participantDetails = this.extractParticipantDetails(r.registration.submittedData, r.form?.formFields || []);
+    return {
+      ...r.registration,
+      participantName: participantDetails.name,
+      participantEmail: participantDetails.email,
+      participantPhone: participantDetails.phone,
+      form: r.form
+    };
+  }
   
   private extractParticipantDetails(submittedData: Record<string, string>, formFields: Array<{id: string, label: string, type: string, required: boolean, placeholder?: string}>): { name: string; email: string; phone: string } {
     let name = 'N/A';
@@ -951,7 +973,7 @@ export class DatabaseStorage implements IStorage {
       .where(eq(eventCredentials.participantUserId, participantUserId));
   }
 
-  async getEventCredentialsByEvent(eventId: string): Promise<Array<EventCredential & { participant: User, event: Event }>> {
+  async getEventCredentialsByEvent(eventId: string): Promise<Array<EventCredential & { participant: User, event: Event, paymentStatus?: string }>> {
     const result = await db.select({
       id: eventCredentials.id,
       participantUserId: eventCredentials.participantUserId,
@@ -964,10 +986,12 @@ export class DatabaseStorage implements IStorage {
       createdAt: eventCredentials.createdAt,
       participant: users,
       event: events,
+      paymentStatus: registrations.paymentStatus,
     })
     .from(eventCredentials)
     .innerJoin(users, eq(eventCredentials.participantUserId, users.id))
     .innerJoin(events, eq(eventCredentials.eventId, events.id))
+    .leftJoin(registrations, eq(registrations.participantUserId, users.id))
     .where(eq(eventCredentials.eventId, eventId));
     
     return result as any;

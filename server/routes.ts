@@ -7,6 +7,7 @@ import crypto from "crypto"
 import { nanoid } from "nanoid"
 import PDFDocument from "pdfkit"
 import ExcelJS from "exceljs"
+import QRCode from "qrcode"
 import {
   requireAuth,
   requireSuperAdmin,
@@ -2250,6 +2251,148 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json(credentials)
     } catch (error) {
       console.error("Get event credentials error:", error)
+      res.status(500).json({ message: "Internal server error" })
+    }
+  })
+
+  app.get("/api/event-credentials/:credentialId/id-pass", requireAuth, async (req: AuthRequest, res: Response) => {
+    try {
+      const user = req.user!
+      const { credentialId } = req.params
+
+      const credential = await storage.getEventCredential(credentialId)
+      if (!credential) {
+        return res.status(404).json({ message: "Credential not found" })
+      }
+
+      const participant = await storage.getUserById(credential.participantUserId)
+      const event = await storage.getEventById(credential.eventId)
+
+      if (!participant || !event) {
+        return res.status(404).json({ message: "Participant or event not found" })
+      }
+
+      if (user.role === "event_admin") {
+        const isEventAdmin = await storage.isUserEventAdmin(user.id, event.id)
+        if (!isEventAdmin) {
+          return res.status(403).json({ message: "Not authorized for this event" })
+        }
+      } else if (user.role !== "super_admin" && user.role !== "registration_committee") {
+        return res.status(403).json({ message: "Forbidden" })
+      }
+
+      const registration = await storage.getRegistrationByUserId(participant.id)
+      const paymentStatus = registration?.paymentStatus || "pending"
+
+      const doc = new PDFDocument({ 
+        size: [400, 600],
+        margins: { top: 40, bottom: 40, left: 40, right: 40 }
+      })
+
+      res.setHeader("Content-Type", "application/pdf")
+      res.setHeader("Content-Disposition", `attachment; filename="id-pass-${participant.fullName.replace(/\s+/g, '-')}-${event.name.replace(/\s+/g, '-')}.pdf"`)
+
+      doc.pipe(res)
+
+      doc.rect(0, 0, 400, 600).fillAndStroke("#f8f9fa")
+
+      doc.rect(0, 0, 400, 120).fillAndStroke("#4A5568")
+
+      doc.fontSize(24).fillColor("#FFF").font("Helvetica-Bold")
+      doc.text("SYMPOSIUM", 0, 30, { align: "center", width: 400 })
+      doc.fontSize(12).font("Helvetica")
+      doc.text("ID PASS", 0, 60, { align: "center", width: 400 })
+
+      doc.fillColor("#000").fontSize(14).font("Helvetica-Bold")
+      doc.text("Participant Details", 40, 140)
+
+      doc.fontSize(10).font("Helvetica")
+      let yPos = 165
+
+      doc.fillColor("#4A5568").text("Name:", 40, yPos, { continued: true })
+      doc.fillColor("#000").font("Helvetica-Bold").text(` ${participant.fullName}`, { continued: false })
+      yPos += 25
+
+      doc.fillColor("#4A5568").font("Helvetica").text("Email:", 40, yPos, { continued: true })
+      doc.fillColor("#000").text(` ${participant.email}`, { continued: false })
+      yPos += 25
+
+      doc.fillColor("#4A5568").text("Event:", 40, yPos, { continued: true })
+      doc.fillColor("#000").font("Helvetica-Bold").text(` ${event.name}`, { continued: false })
+      yPos += 30
+
+      doc.strokeColor("#E2E8F0").moveTo(40, yPos).lineTo(360, yPos).stroke()
+      yPos += 20
+
+      doc.fontSize(14).fillColor("#000").font("Helvetica-Bold")
+      doc.text("Event Credentials", 40, yPos)
+      yPos += 25
+
+      doc.fontSize(11).font("Helvetica")
+      doc.fillColor("#4A5568").text("Username:", 40, yPos, { continued: true })
+      doc.fillColor("#000").font("Helvetica-Bold").text(` ${credential.eventUsername}`, { continued: false })
+      yPos += 25
+
+      doc.fillColor("#4A5568").font("Helvetica").text("Password:", 40, yPos, { continued: true })
+      doc.fillColor("#000").font("Helvetica-Bold").text(` ${credential.eventPassword}`, { continued: false })
+      yPos += 30
+
+      doc.strokeColor("#E2E8F0").moveTo(40, yPos).lineTo(360, yPos).stroke()
+      yPos += 20
+
+      doc.fontSize(14).fillColor("#000").font("Helvetica-Bold")
+      doc.text("Status", 40, yPos)
+      yPos += 25
+
+      const statusColor = paymentStatus === "paid" ? "#10B981" : paymentStatus === "pending" ? "#F59E0B" : "#EF4444"
+      doc.fontSize(11).font("Helvetica")
+      doc.fillColor("#4A5568").text("Payment:", 40, yPos, { continued: true })
+      doc.fillColor(statusColor).font("Helvetica-Bold").text(` ${paymentStatus.toUpperCase()}`, { continued: false })
+      yPos += 25
+
+      doc.fillColor("#4A5568").font("Helvetica").text("Participant ID:", 40, yPos, { continued: true })
+      doc.fillColor("#000").text(` ${credential.id.substring(0, 8).toUpperCase()}`, { continued: false })
+      yPos += 35
+
+      const qrData = JSON.stringify({
+        participantId: participant.id,
+        eventId: event.id,
+        credentialId: credential.id,
+        username: credential.eventUsername,
+        status: paymentStatus
+      })
+
+      try {
+        const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+          width: 120,
+          margin: 1,
+          color: {
+            dark: "#000000",
+            light: "#FFFFFF"
+          }
+        })
+
+        const qrBuffer = Buffer.from(qrCodeDataUrl.split(",")[1], "base64")
+        doc.image(qrBuffer, 140, yPos, { width: 120, height: 120 })
+        yPos += 130
+
+        doc.fontSize(8).fillColor("#6B7280").font("Helvetica")
+        doc.text("Scan for verification", 0, yPos, { align: "center", width: 400 })
+      } catch (qrError) {
+        console.error("QR code generation error:", qrError)
+      }
+
+      doc.fontSize(8).fillColor("#9CA3AF")
+      doc.text(
+        `Generated on ${new Date().toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}`,
+        0,
+        560,
+        { align: "center", width: 400 }
+      )
+
+      doc.end()
+    } catch (error) {
+      console.error("Generate ID Pass error:", error)
       res.status(500).json({ message: "Internal server error" })
     }
   })
