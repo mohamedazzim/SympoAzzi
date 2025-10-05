@@ -1,0 +1,37 @@
+==> Common ways to troubleshoot your deploy: https://render.com/docs/troubleshooting-deploys
+==> Build failed 😞
+    at getTailwindConfig (/opt/render/project/src/node_modules/tailwindcss/lib/lib/setupTrackingContext.js:71:116)
+    at loadConfig (/opt/render/project/src/node_modules/tailwindcss/lib/lib/load-config.js:62:6)
+    at /opt/render/project/src/node_modules/tailwindcss/lib/lib/load-config.js:52:26
+    at jiti (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:245241)
+    at evalModule (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:247313)
+    at /opt/render/project/src/tailwind.config.ts:94:45
+    at jiti (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:244531)
+    at _resolve (/opt/render/project/src/node_modules/jiti/dist/jiti.js:1:241814)
+    at Function.resolve (node:internal/modules/helpers:145:19)
+    at Function._resolveFilename (node:internal/modules/cjs/loader:1401:15)
+file: /opt/render/project/src/client/src/index.css:undefined:NaN
+- /opt/render/project/src/tailwind.config.ts
+Require stack:
+[vite:css] [postcss] Cannot find module '@tailwindcss/typography'
+error during build:
+x Build failed in 424ms
+✓ 3 modules transformed.
+transforming...
+vite v5.4.20 building for production...
+> vite build && esbuild server/index.ts --platform=node --packages=external --bundle --format=esm --outdir=dist
+> rest-express@1.0.0 build
+Run `npm audit` for details.
+  npm audit fix --force
+To address all issues (including breaking changes), run:
+  npm audit fix
+To address issues that do not require attention, run:
+5 vulnerabilities (3 low, 2 moderate)
+  run `npm fund` for details
+109 packages are looking for funding
+added 1028 packages, and audited 1029 packages in 14s
+==> Running build command 'npm install; npm run build'...
+==> Docs on specifying a Node.js version: https://render.com/docs/node-version
+==> Using Node.js version 22.16.0 (default)
+==> Checking out commit 7bb2ac4f8b57f796b63a92ed45f761dc9b5065a3 in branch main
+==> Cloning from https://github.com/mohamedazzim/SympoAzzi

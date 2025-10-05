@@ -900,6 +900,22 @@ var DatabaseStorage = class {
       form: r.form
     };
   }
+  async getRegistrationByUserId(userId) {
+    const result = await db.select({
+      registration: registrations,
+      form: registrationForms
+    }).from(registrations).leftJoin(registrationForms, eq(registrations.formId, registrationForms.id)).where(eq(registrations.participantUserId, userId));
+    if (result.length === 0) return void 0;
+    const r = result[0];
+    const participantDetails = this.extractParticipantDetails(r.registration.submittedData, r.form?.formFields || []);
+    return {
+      ...r.registration,
+      participantName: participantDetails.name,
+      participantEmail: participantDetails.email,
+      participantPhone: participantDetails.phone,
+      form: r.form
+    };
+  }
   extractParticipantDetails(submittedData, formFields) {
     let name = "N/A";
     let email = "N/A";
@@ -967,8 +983,9 @@ var DatabaseStorage = class {
       enabledBy: eventCredentials.enabledBy,
       createdAt: eventCredentials.createdAt,
       participant: users,
-      event: events
-    }).from(eventCredentials).innerJoin(users, eq(eventCredentials.participantUserId, users.id)).innerJoin(events, eq(eventCredentials.eventId, events.id)).where(eq(eventCredentials.eventId, eventId));
+      event: events,
+      paymentStatus: registrations.paymentStatus
+    }).from(eventCredentials).innerJoin(users, eq(eventCredentials.participantUserId, users.id)).innerJoin(events, eq(eventCredentials.eventId, events.id)).leftJoin(registrations, eq(registrations.participantUserId, users.id)).where(eq(eventCredentials.eventId, eventId));
     return result;
   }
   async getEventCredential(credentialId) {
@@ -1136,6 +1153,7 @@ import crypto from "crypto";
 import { nanoid } from "nanoid";
 import PDFDocument from "pdfkit";
 import ExcelJS from "exceljs";
+import QRCode from "qrcode";
 
 // server/middleware/auth.ts
 import jwt from "jsonwebtoken";
@@ -1654,18 +1672,43 @@ function generateResultPublishedEmail(name, eventName, score, rank) {
 // server/services/emailService.ts
 var EmailService = class {
   transporter;
+  isDevelopmentMode;
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || "smtp.ethereal.email",
-      port: parseInt(process.env.SMTP_PORT || "587"),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER || "ethereal.user@ethereal.email",
-        pass: process.env.SMTP_PASS || "ethereal.password"
-      }
-    });
+    const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+    this.isDevelopmentMode = !hasSmtpConfig;
+    if (hasSmtpConfig) {
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || "587"),
+        secure: process.env.SMTP_PORT === "465",
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+      console.log("\u2705 Email service initialized with SMTP configuration");
+    } else {
+      this.transporter = null;
+      console.log("\u26A0\uFE0F  Email service running in DEVELOPMENT MODE - emails will be logged, not sent");
+      console.log("   To enable email sending, configure SMTP secrets: SMTP_HOST, SMTP_USER, SMTP_PASS");
+    }
   }
   async sendWithRetry(mailOptions, maxRetries = 3, attempt = 1) {
+    if (this.isDevelopmentMode || !this.transporter) {
+      console.log("\n\u{1F4E7} [DEV MODE] Email would be sent:");
+      console.log("   To:", mailOptions.to);
+      console.log("   From:", mailOptions.from);
+      console.log("   Subject:", mailOptions.subject);
+      console.log("   (Email content logged to email_logs table)\n");
+      return {
+        success: true,
+        messageId: `dev-mode-${Date.now()}`,
+        retryCount: 0
+      };
+    }
     try {
       const info = await this.transporter.sendMail(mailOptions);
       return { success: true, messageId: info.messageId, retryCount: attempt - 1 };
@@ -1726,19 +1769,27 @@ var EmailService = class {
       ...options.metadata || {},
       retryCount: result.retryCount
     };
-    await storage.createEmailLog({
-      recipientEmail: options.to,
-      recipientName: recipientName || null,
-      subject: options.subject,
-      templateType,
-      status: result.success ? "sent" : "failed",
-      metadata,
-      errorMessage: result.error || null
-    });
+    try {
+      await storage.createEmailLog({
+        recipientEmail: options.to,
+        recipientName: recipientName || null,
+        subject: options.subject,
+        templateType,
+        status: result.success ? "sent" : "failed",
+        metadata,
+        errorMessage: result.error || null
+      });
+    } catch (logError) {
+      console.warn("\u26A0\uFE0F  Failed to log email to database:", logError instanceof Error ? logError.message : "Unknown error");
+    }
     if (result.success) {
-      console.log(`Email sent successfully to ${options.to} (${templateType})`);
+      if (this.isDevelopmentMode) {
+        console.log(`\u2705 [DEV MODE] Email logged successfully: ${templateType} to ${options.to}`);
+      } else {
+        console.log(`\u2705 Email sent successfully to ${options.to} (${templateType})`);
+      }
     } else {
-      console.error(`Email send failed to ${options.to}:`, result.error);
+      console.error(`\u274C Email send failed to ${options.to}:`, result.error);
     }
     return result;
   }
@@ -2364,6 +2415,15 @@ async function registerRoutes(app2) {
       }
     } catch (error) {
       console.error("Get events error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  app2.get("/api/events/unassigned", requireAuth, requireSuperAdmin, async (req, res) => {
+    try {
+      const events2 = await storage.getEventsWithoutAdmins();
+      res.json(events2);
+    } catch (error) {
+      console.error("Get unassigned events error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
@@ -3104,12 +3164,48 @@ async function registerRoutes(app2) {
       const round = await storage.getRound(attempt.roundId);
       const questions2 = await storage.getQuestionsByRound(attempt.roundId);
       const answers2 = await storage.getAnswersByAttempt(attempt.id);
-      res.json({
+      const event = round ? await storage.getEvent(round.eventId) : null;
+      const eventHasEnded = event?.endDate ? /* @__PURE__ */ new Date() > new Date(event.endDate) : false;
+      let attemptDurationElapsed = false;
+      if (attempt.startedAt && round?.duration) {
+        const attemptEndTime = new Date(attempt.startedAt).getTime() + round.duration * 60 * 1e3;
+        attemptDurationElapsed = Date.now() > attemptEndTime;
+      }
+      const eventEnded = eventHasEnded || attemptDurationElapsed;
+      const isAdmin = req.user.role === "super_admin" || req.user.role === "event_admin";
+      let responseData = {
         ...attempt,
         round,
         questions: questions2,
-        answers: answers2
-      });
+        answers: answers2,
+        event,
+        eventEnded
+      };
+      if (!eventEnded && !isAdmin && req.user.role === "participant") {
+        responseData = {
+          ...attempt,
+          totalScore: null,
+          maxScore: null,
+          round: {
+            ...round
+          },
+          questions: questions2.map((q) => ({
+            ...q,
+            correctAnswer: null
+            // Hide correct answers
+          })),
+          answers: answers2.map((a) => ({
+            ...a,
+            isCorrect: null,
+            // Hide correctness
+            pointsAwarded: null
+            // Hide points
+          })),
+          event,
+          eventEnded
+        };
+      }
+      res.json(responseData);
     } catch (error) {
       console.error("Get test attempt error:", error);
       res.status(500).json({ message: "Internal server error" });
@@ -3870,6 +3966,117 @@ async function registerRoutes(app2) {
       res.json(credentials);
     } catch (error) {
       console.error("Get event credentials error:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+  app2.get("/api/event-credentials/:credentialId/id-pass", requireAuth, async (req, res) => {
+    try {
+      const user = req.user;
+      const { credentialId } = req.params;
+      const credential = await storage.getEventCredential(credentialId);
+      if (!credential) {
+        return res.status(404).json({ message: "Credential not found" });
+      }
+      const participant = await storage.getUserById(credential.participantUserId);
+      const event = await storage.getEventById(credential.eventId);
+      if (!participant || !event) {
+        return res.status(404).json({ message: "Participant or event not found" });
+      }
+      if (user.role === "event_admin") {
+        const isEventAdmin = await storage.isUserEventAdmin(user.id, event.id);
+        if (!isEventAdmin) {
+          return res.status(403).json({ message: "Not authorized for this event" });
+        }
+      } else if (user.role !== "super_admin" && user.role !== "registration_committee") {
+        return res.status(403).json({ message: "Forbidden" });
+      }
+      const registration = await storage.getRegistrationByUserId(participant.id);
+      const paymentStatus = registration?.paymentStatus || "pending";
+      const doc = new PDFDocument({
+        size: [400, 600],
+        margins: { top: 40, bottom: 40, left: 40, right: 40 }
+      });
+      res.setHeader("Content-Type", "application/pdf");
+      res.setHeader("Content-Disposition", `attachment; filename="id-pass-${participant.fullName.replace(/\s+/g, "-")}-${event.name.replace(/\s+/g, "-")}.pdf"`);
+      doc.pipe(res);
+      doc.rect(0, 0, 400, 600).fillAndStroke("#f8f9fa");
+      doc.rect(0, 0, 400, 120).fillAndStroke("#4A5568");
+      doc.fontSize(24).fillColor("#FFF").font("Helvetica-Bold");
+      doc.text("SYMPOSIUM", 0, 30, { align: "center", width: 400 });
+      doc.fontSize(12).font("Helvetica");
+      doc.text("ID PASS", 0, 60, { align: "center", width: 400 });
+      doc.fillColor("#000").fontSize(14).font("Helvetica-Bold");
+      doc.text("Participant Details", 40, 140);
+      doc.fontSize(10).font("Helvetica");
+      let yPos = 165;
+      doc.fillColor("#4A5568").text("Name:", 40, yPos, { continued: true });
+      doc.fillColor("#000").font("Helvetica-Bold").text(` ${participant.fullName}`, { continued: false });
+      yPos += 25;
+      doc.fillColor("#4A5568").font("Helvetica").text("Email:", 40, yPos, { continued: true });
+      doc.fillColor("#000").text(` ${participant.email}`, { continued: false });
+      yPos += 25;
+      doc.fillColor("#4A5568").text("Event:", 40, yPos, { continued: true });
+      doc.fillColor("#000").font("Helvetica-Bold").text(` ${event.name}`, { continued: false });
+      yPos += 30;
+      doc.strokeColor("#E2E8F0").moveTo(40, yPos).lineTo(360, yPos).stroke();
+      yPos += 20;
+      doc.fontSize(14).fillColor("#000").font("Helvetica-Bold");
+      doc.text("Event Credentials", 40, yPos);
+      yPos += 25;
+      doc.fontSize(11).font("Helvetica");
+      doc.fillColor("#4A5568").text("Username:", 40, yPos, { continued: true });
+      doc.fillColor("#000").font("Helvetica-Bold").text(` ${credential.eventUsername}`, { continued: false });
+      yPos += 25;
+      doc.fillColor("#4A5568").font("Helvetica").text("Password:", 40, yPos, { continued: true });
+      doc.fillColor("#000").font("Helvetica-Bold").text(` ${credential.eventPassword}`, { continued: false });
+      yPos += 30;
+      doc.strokeColor("#E2E8F0").moveTo(40, yPos).lineTo(360, yPos).stroke();
+      yPos += 20;
+      doc.fontSize(14).fillColor("#000").font("Helvetica-Bold");
+      doc.text("Status", 40, yPos);
+      yPos += 25;
+      const statusColor = paymentStatus === "paid" ? "#10B981" : paymentStatus === "pending" ? "#F59E0B" : "#EF4444";
+      doc.fontSize(11).font("Helvetica");
+      doc.fillColor("#4A5568").text("Payment:", 40, yPos, { continued: true });
+      doc.fillColor(statusColor).font("Helvetica-Bold").text(` ${paymentStatus.toUpperCase()}`, { continued: false });
+      yPos += 25;
+      doc.fillColor("#4A5568").font("Helvetica").text("Participant ID:", 40, yPos, { continued: true });
+      doc.fillColor("#000").text(` ${credential.id.substring(0, 8).toUpperCase()}`, { continued: false });
+      yPos += 35;
+      const qrData = JSON.stringify({
+        participantId: participant.id,
+        eventId: event.id,
+        credentialId: credential.id,
+        username: credential.eventUsername,
+        status: paymentStatus
+      });
+      try {
+        const qrCodeDataUrl = await QRCode.toDataURL(qrData, {
+          width: 120,
+          margin: 1,
+          color: {
+            dark: "#000000",
+            light: "#FFFFFF"
+          }
+        });
+        const qrBuffer = Buffer.from(qrCodeDataUrl.split(",")[1], "base64");
+        doc.image(qrBuffer, 140, yPos, { width: 120, height: 120 });
+        yPos += 130;
+        doc.fontSize(8).fillColor("#6B7280").font("Helvetica");
+        doc.text("Scan for verification", 0, yPos, { align: "center", width: 400 });
+      } catch (qrError) {
+        console.error("QR code generation error:", qrError);
+      }
+      doc.fontSize(8).fillColor("#9CA3AF");
+      doc.text(
+        `Generated on ${(/* @__PURE__ */ new Date()).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}`,
+        0,
+        560,
+        { align: "center", width: 400 }
+      );
+      doc.end();
+    } catch (error) {
+      console.error("Generate ID Pass error:", error);
       res.status(500).json({ message: "Internal server error" });
     }
   });
