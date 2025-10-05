@@ -28,19 +28,19 @@ export default function EmailLogsPage() {
   const [selectedLog, setSelectedLog] = useState<EmailLog | null>(null);
   const logsPerPage = 50;
 
+  const buildQueryKey = () => {
+    const params = new URLSearchParams();
+    if (statusFilter !== 'all') params.append('status', statusFilter);
+    if (templateTypeFilter !== 'all') params.append('templateType', templateTypeFilter);
+    if (dateRange?.from) params.append('startDate', dateRange.from.toISOString());
+    if (dateRange?.to) params.append('endDate', dateRange.to.toISOString());
+    
+    const queryString = params.toString();
+    return queryString ? `/api/email-logs?${queryString}` : '/api/email-logs';
+  };
+
   const { data: emailLogs, isLoading } = useQuery<EmailLog[]>({
-    queryKey: ['/api/email-logs', statusFilter, templateTypeFilter, dateRange?.from, dateRange?.to],
-    queryFn: async () => {
-      const params = new URLSearchParams();
-      if (statusFilter !== 'all') params.append('status', statusFilter);
-      if (templateTypeFilter !== 'all') params.append('templateType', templateTypeFilter);
-      if (dateRange?.from) params.append('startDate', dateRange.from.toISOString());
-      if (dateRange?.to) params.append('endDate', dateRange.to.toISOString());
-      
-      const response = await fetch(`/api/email-logs?${params.toString()}`);
-      if (!response.ok) throw new Error('Failed to fetch email logs');
-      return response.json();
-    }
+    queryKey: [buildQueryKey()],
   });
 
   const filteredLogs = emailLogs?.filter(log => {
