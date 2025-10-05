@@ -21,11 +21,13 @@ import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import type { Round, Event } from '@shared/schema';
 
-function CountdownTimer({ round }: { round: Round }) {
+function CountdownTimer({ round, onTimeExpired }: { round: Round; onTimeExpired?: (roundId: string) => void }) {
   const [timeRemaining, setTimeRemaining] = useState<number | null>(null);
+  const [hasNotified, setHasNotified] = useState(false);
 
   useEffect(() => {
     if (round.status !== 'in_progress' || !round.startedAt) {
+      setHasNotified(false);
       return;
     }
 
@@ -41,11 +43,18 @@ function CountdownTimer({ round }: { round: Round }) {
     setTimeRemaining(calculateTimeRemaining());
 
     const interval = setInterval(() => {
-      setTimeRemaining(calculateTimeRemaining());
+      const newTimeRemaining = calculateTimeRemaining();
+      setTimeRemaining(newTimeRemaining);
+      
+      // Notify parent when time expires (only once)
+      if (newTimeRemaining === 0 && onTimeExpired && !hasNotified) {
+        onTimeExpired(round.id);
+        setHasNotified(true);
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [round]);
+  }, [round, onTimeExpired, hasNotified]);
 
   if (round.status === 'not_started') {
     return <span className="text-gray-400" data-testid={`timer-not-started-${round.id}`}>-- : --</span>;
@@ -90,6 +99,7 @@ export default function EventRoundsPage() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const [restartRoundId, setRestartRoundId] = useState<string | null>(null);
+  const [expiredRoundIds, setExpiredRoundIds] = useState<Set<string>>(new Set());
 
   const { data: event, isLoading: eventLoading } = useQuery<Event>({
     queryKey: ['/api/events', eventId],
@@ -101,6 +111,22 @@ export default function EventRoundsPage() {
     enabled: !!eventId,
     refetchInterval: 5000,
   });
+
+  // Clear expired round IDs for rounds that are no longer in progress
+  useEffect(() => {
+    if (rounds) {
+      setExpiredRoundIds(prev => {
+        const newSet = new Set(prev);
+        // Remove rounds that are no longer in progress
+        rounds.forEach(round => {
+          if (round.status !== 'in_progress') {
+            newSet.delete(round.id);
+          }
+        });
+        return newSet;
+      });
+    }
+  }, [rounds]);
 
   const startRoundMutation = useMutation({
     mutationFn: async (roundId: string) => {
@@ -267,7 +293,12 @@ export default function EventRoundsPage() {
                       <TableCell>{round.duration} minutes</TableCell>
                       <TableCell>{getStatusBadge(round.status)}</TableCell>
                       <TableCell>
-                        <CountdownTimer round={round} />
+                        <CountdownTimer 
+                          round={round} 
+                          onTimeExpired={(roundId) => {
+                            setExpiredRoundIds(prev => new Set(prev).add(roundId));
+                          }}
+                        />
                       </TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
@@ -284,7 +315,7 @@ export default function EventRoundsPage() {
                               Start
                             </Button>
                           )}
-                          {round.status === 'in_progress' && (
+                          {round.status === 'in_progress' && !expiredRoundIds.has(round.id) && (
                             <Button
                               variant="destructive"
                               size="sm"
