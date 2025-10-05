@@ -393,3 +393,127 @@ export function generateResultPublishedEmail(
     </html>
   `;
 }
+
+export function generateAdminNotificationEmail(
+  emailType: string,
+  recipientEmail: string,
+  recipientName: string,
+  eventName: string,
+  additionalDetails: Record<string, any>
+): string {
+  const timestamp = new Date().toLocaleString();
+  const detailsHtml = Object.entries(additionalDetails)
+    .map(([key, value]) => `
+      <tr>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+          <span style="color: #6b7280; font-size: 14px;">${key.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}</span>
+        </td>
+        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+          <strong style="color: #111827; font-size: 14px;">${String(value)}</strong>
+        </td>
+      </tr>
+    `).join('');
+
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Email Activity Notification</title>
+      </head>
+      <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f3f4f6;">
+        <table role="presentation" style="width: 100%; border-collapse: collapse;">
+          <tr>
+            <td align="center" style="padding: 40px 0;">
+              <table role="presentation" style="width: 600px; max-width: 100%; background: white; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                <!-- Header -->
+                <tr>
+                  <td style="background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); padding: 30px; text-align: center; border-radius: 12px 12px 0 0;">
+                    <h1 style="margin: 0; color: white; font-size: 24px; font-weight: 700;">📧 Email Activity Alert</h1>
+                    <p style="margin: 8px 0 0; color: rgba(255,255,255,0.9); font-size: 14px;">Super Admin Notification</p>
+                  </td>
+                </tr>
+                
+                <!-- Content -->
+                <tr>
+                  <td style="padding: 30px;">
+                    <div style="background: #dbeafe; border-left: 4px solid #3b82f6; padding: 16px; margin-bottom: 24px; border-radius: 4px;">
+                      <p style="margin: 0; color: #1e40af; font-weight: 600; font-size: 16px;">Email Sent: ${emailType}</p>
+                    </div>
+                    
+                    <h3 style="margin: 0 0 16px; color: #111827; font-size: 18px;">Email Details</h3>
+                    
+                    <table style="width: 100%; border-collapse: collapse; background: #f9fafb; border-radius: 8px; overflow: hidden; margin-bottom: 20px;">
+                      <tr>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+                          <span style="color: #6b7280; font-size: 14px;">Email Type</span>
+                        </td>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+                          <strong style="color: #111827; font-size: 14px;">${emailType}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+                          <span style="color: #6b7280; font-size: 14px;">Recipient Name</span>
+                        </td>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+                          <strong style="color: #111827; font-size: 14px;">${recipientName}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+                          <span style="color: #6b7280; font-size: 14px;">Recipient Email</span>
+                        </td>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+                          <strong style="color: #111827; font-size: 14px; font-family: monospace;">${recipientEmail}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb;">
+                          <span style="color: #6b7280; font-size: 14px;">Event Name</span>
+                        </td>
+                        <td style="padding: 12px 16px; border-bottom: 1px solid #e5e7eb; text-align: right;">
+                          <strong style="color: #111827; font-size: 14px;">${eventName}</strong>
+                        </td>
+                      </tr>
+                      <tr>
+                        <td style="padding: 12px 16px;">
+                          <span style="color: #6b7280; font-size: 14px;">Sent At</span>
+                        </td>
+                        <td style="padding: 12px 16px; text-align: right;">
+                          <strong style="color: #111827; font-size: 14px;">${timestamp}</strong>
+                        </td>
+                      </tr>
+                    </table>
+                    
+                    ${Object.keys(additionalDetails).length > 0 ? `
+                      <h3 style="margin: 24px 0 16px; color: #111827; font-size: 18px;">Additional Information</h3>
+                      <table style="width: 100%; border-collapse: collapse; background: #f9fafb; border-radius: 8px; overflow: hidden;">
+                        ${detailsHtml}
+                      </table>
+                    ` : ''}
+                    
+                    <div style="background: #f0fdf4; border-left: 4px solid #22c55e; padding: 16px; margin-top: 24px; border-radius: 4px;">
+                      <p style="margin: 0; color: #166534; font-size: 14px; line-height: 1.5;">
+                        <strong>✓ Email sent successfully</strong> - This is an automated notification for email tracking purposes.
+                      </p>
+                    </div>
+                  </td>
+                </tr>
+                
+                <tr>
+                  <td style="padding: 20px; background: #f9fafb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb;">
+                    <p style="margin: 0; color: #9ca3af; font-size: 12px; text-align: center;">
+                      © 2026 BootFeet. All rights reserved. | Super Admin Dashboard
+                    </p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+        </table>
+      </body>
+    </html>
+  `;
+}

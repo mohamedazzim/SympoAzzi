@@ -5,7 +5,8 @@ import {
   generateRegistrationApprovedEmail,
   generateCredentialsEmail,
   generateTestStartReminderEmail,
-  generateResultPublishedEmail
+  generateResultPublishedEmail,
+  generateAdminNotificationEmail
 } from '../templates/emailTemplates';
 
 interface EmailOptions {
@@ -170,6 +171,18 @@ class EmailService {
       } else {
         console.log(`✅ Email sent successfully to ${options.to} (${templateType})`);
       }
+      
+      // Notify superadmin about email activity (non-blocking)
+      const eventName = options.metadata?.eventName || 'N/A';
+      this.notifySuperAdmin(
+        templateType,
+        options.to,
+        recipientName || 'Unknown',
+        eventName,
+        options.metadata || {}
+      ).catch(err => {
+        console.error('Failed to notify superadmin:', err);
+      });
     } else {
       console.error(`❌ Email send failed to ${options.to}:`, result.error);
     }
@@ -255,6 +268,52 @@ class EmailService {
       'result_published',
       name
     );
+  }
+
+  private async notifySuperAdmin(
+    emailType: string,
+    recipientEmail: string,
+    recipientName: string,
+    eventName: string,
+    additionalDetails: Record<string, any>
+  ): Promise<void> {
+    try {
+      // Get superadmin email
+      const superadmins = await storage.getUsers();
+      const superadmin = superadmins.find(u => u.role === 'super_admin');
+      
+      if (!superadmin || !superadmin.email) {
+        console.warn('⚠️  No superadmin found to notify about email activity');
+        return;
+      }
+
+      const html = generateAdminNotificationEmail(
+        emailType,
+        recipientEmail,
+        recipientName,
+        eventName,
+        additionalDetails
+      );
+
+      const mailOptions = {
+        from: process.env.SMTP_FROM || '"BootFeet 2K26" <noreply@bootfeet.com>',
+        to: superadmin.email,
+        subject: `📧 Email Activity: ${emailType} sent to ${recipientName}`,
+        html
+      };
+
+      // Send notification (don't use retry to avoid recursive notifications)
+      if (this.isDevelopmentMode || !this.transporter) {
+        console.log('\n📧 [DEV MODE] Admin notification would be sent:');
+        console.log('   To:', superadmin.email);
+        console.log('   Subject:', mailOptions.subject);
+      } else {
+        await this.transporter.sendMail(mailOptions);
+        console.log(`✅ Admin notification sent to ${superadmin.email}`);
+      }
+    } catch (error) {
+      console.error('❌ Failed to send admin notification:', error instanceof Error ? error.message : 'Unknown error');
+    }
   }
 }
 
