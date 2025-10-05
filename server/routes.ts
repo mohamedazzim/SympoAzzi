@@ -3713,6 +3713,42 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   )
 
+  // POST /api/test-email - Send a test email
+  app.post("/api/test-email", async (req: Request, res: Response) => {
+    try {
+      const { to, name } = req.body
+
+      if (!to || !name) {
+        return res.status(400).json({ message: "Email address and name are required" })
+      }
+
+      const result = await emailService.sendRegistrationApproved(
+        to,
+        name,
+        "BootFeet 2K26 Test Event",
+        "test-user-001",
+        "testpass123"
+      )
+
+      if (result.success) {
+        res.json({
+          success: true,
+          message: "Test email sent successfully",
+          messageId: result.messageId
+        })
+      } else {
+        res.status(500).json({
+          success: false,
+          message: "Failed to send test email",
+          error: result.error
+        })
+      }
+    } catch (error) {
+      console.error("Test email error:", error)
+      res.status(500).json({ message: "Internal server error" })
+    }
+  })
+
   const httpServer = createServer(app)
 
   return httpServer
