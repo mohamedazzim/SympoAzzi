@@ -3676,8 +3676,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   )
 
-  // GET /api/email-logs - Retrieve email logs with filters (Super Admin + Event Admin)
-  app.get("/api/email-logs", requireAuth, requireEventAdminOrSuperAdmin, async (req: AuthRequest, res: Response) => {
+  // GET /api/email-logs - Retrieve email logs with filters (Super Admin only)
+  app.get("/api/email-logs", requireAuth, requireSuperAdmin, async (req: AuthRequest, res: Response) => {
     try {
       const { status, templateType, startDate, endDate } = req.query
 
@@ -3699,7 +3699,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get(
     "/api/email-logs/recipient/:email",
     requireAuth,
-    requireEventAdminOrSuperAdmin,
+    requireSuperAdmin,
     async (req: AuthRequest, res: Response) => {
       try {
         const { email } = req.params
