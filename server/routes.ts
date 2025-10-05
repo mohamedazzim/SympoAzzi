@@ -1950,14 +1950,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const updated = await storage.updateRegistrationStatus(req.params.id, "paid", newUser.id, user.id)
 
+      // Send emails in background (non-blocking)
       for (const eventCred of eventCredentialsList) {
-        await emailService.sendRegistrationApproved(
+        emailService.sendRegistrationApproved(
           email,
           fullName,
           eventCred.eventName,
           eventCred.eventUsername,
           eventCred.eventPassword,
-        )
+        ).catch(err => {
+          console.error(`Failed to send approval email for event ${eventCred.eventName}:`, err)
+        })
       }
 
       res.json({
@@ -2037,14 +2040,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
           })
         }
 
+        // Send emails in background (non-blocking)
         for (const eventCred of eventCredentialsList) {
-          await emailService.sendCredentials(
+          emailService.sendCredentials(
             email,
             fullName,
             eventCred.eventName,
             eventCred.eventUsername,
             eventCred.eventPassword,
-          )
+          ).catch(err => {
+            console.error(`Failed to send credentials email for event ${eventCred.eventName}:`, err)
+          })
         }
 
         // Notify via WebSocket for each event
