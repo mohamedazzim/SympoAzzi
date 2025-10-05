@@ -106,6 +106,9 @@ export default function TakeTestPage() {
       return apiRequest('POST', `/api/attempts/${attemptId}/submit`, {});
     },
     onSuccess: () => {
+      // Update test status to prevent fullscreen cleanup
+      testStatusRef.current = 'completed';
+      
       toast({
         title: 'Test submitted',
         description: 'Your test has been submitted successfully',
