@@ -382,11 +382,11 @@ export default function EmailLogsPage() {
                                           </p>
                                         </div>
                                       )}
-                                      {selectedLog.metadata && (
+                                      {selectedLog.metadata != null && (
                                         <div className="col-span-2">
                                           <label className="text-sm font-medium text-gray-500">Metadata</label>
                                           <pre className="text-xs mt-1 bg-gray-50 p-3 rounded-md overflow-x-auto" data-testid="dialog-text-metadata">
-                                            {JSON.stringify(selectedLog.metadata, null, 2)}
+                                            {JSON.stringify(selectedLog.metadata, null, 2) as string}
                                           </pre>
                                         </div>
                                       )}

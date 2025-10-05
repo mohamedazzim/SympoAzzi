@@ -35,8 +35,12 @@ class EmailService {
           user: process.env.SMTP_USER,
           pass: process.env.SMTP_PASS
         },
+        connectionTimeout: 30000,
+        greetingTimeout: 30000,
+        socketTimeout: 60000,
         tls: {
-          rejectUnauthorized: false
+          rejectUnauthorized: false,
+          minVersion: 'TLSv1.2'
         }
       });
       console.log('✅ Email service initialized with SMTP configuration');
