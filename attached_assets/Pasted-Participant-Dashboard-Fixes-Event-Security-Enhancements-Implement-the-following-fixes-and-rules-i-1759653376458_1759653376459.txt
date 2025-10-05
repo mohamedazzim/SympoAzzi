@@ -1,0 +1,67 @@
+Participant Dashboard Fixes & Event Security Enhancements
+
+Implement the following fixes and rules in the Participant Dashboard of the Symposium Web App:
+
+1. Show Actual Participant Name
+
+When a participant logs in using their credentials, the dashboard currently displays a placeholder "Participant".
+
+Fix it to display the actual participant name from the database or event registration record.
+
+2. Restrict Score Visibility
+
+After a participant submits their responses, do not display scores immediately.
+
+Instead:
+
+Show a message: “✅ Submission received. Please wait until the event concludes to view results.”
+
+Display the scores only after the event duration ends (based on event end time in the database).
+
+Prevent any API or route that leaks results before the event officially ends.
+
+3. Enforce Full-Screen Mode
+
+When the participant begins the event:
+
+Automatically switch to full-screen mode.
+
+Prevent exiting full-screen until submission or event completion.
+
+4. Shortcut & Tab Restriction (Anti-Cheat Logic)
+
+Implement a 3-step violation system:
+
+Violation Count	Action
+1st	Show warning alert → “⚠️ You are not allowed to use shortcuts or leave the test screen. Further attempts will eliminate you.”
+2nd	Show second warning alert → “⚠️ Final warning! Another attempt will eliminate you.”
+3rd	Automatically eliminate participant → Force submission, disable further participation, and show message “❌ You have been eliminated for violating event rules.”
+
+Include the following restrictions:
+
+Disable key combos such as Alt+Tab, Ctrl+R, Ctrl+T, Ctrl+W, F11, etc.
+
+Detect window blur or tab switch (visibilitychange / blur events in JS).
+
+On each detected violation, increment a warning counter and follow the table above.
+
+5. Overall Flow
+
+Participant logs in → Dashboard shows their actual name.
+
+On event start → Enter full-screen mode and activate anti-cheat monitoring.
+
+Participant attempts shortcut/tab switch → Warnings triggered (then elimination).
+
+On submit → Show “Submission received” message, hide scores.
+
+After event end time → Unlock and display results.
+
+✅ Goal:
+Deliver a secure, fair, and professional participant experience by:
+
+Showing identity properly
+
+Preventing early result exposure
+
+Enforcing focus mode and anti-cheat logic with progressive warnings and elimination
