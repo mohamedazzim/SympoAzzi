@@ -264,10 +264,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Username and password are required" })
       }
 
-      if (username.startsWith("DISABLED_")) {
-        return res.status(401).json({ message: "Invalid credentials" })
-      }
-
       // First, try event credential login (for participants)
       const eventCredential = await storage.getEventCredentialByUsername(username)
       if (eventCredential) {
@@ -1917,8 +1913,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const fullName = extractFullName(userData)
 
       const hashedPassword = await bcrypt.hash(password, 10)
+      const username = `${email.split('@')[0]}_${nanoid(6)}`.toLowerCase()
       const newUser = await storage.createUser({
-        username: `DISABLED_${nanoid(16)}`,
+        username: username,
         password: hashedPassword,
         email: email,
         fullName: fullName,
@@ -2006,9 +2003,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
         const password = generateSecurePassword()
         const hashedPassword = await bcrypt.hash(password, 10)
+        const username = `${email.split('@')[0]}_${nanoid(6)}`.toLowerCase()
 
         const newUser = await storage.createUser({
-          username: `DISABLED_${nanoid(16)}`,
+          username: username,
           password: hashedPassword,
           email: email,
           fullName: fullName,
