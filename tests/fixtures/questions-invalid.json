@@ -1,0 +1,33 @@
+{
+  "questions": [
+    {
+      "questionType": "multiple_choice",
+      "questionNumber": 1,
+      "points": 10,
+      "options": ["A", "B"],
+      "correctAnswer": "A"
+    },
+    {
+      "questionType": "multiple_choice",
+      "questionText": "Valid question",
+      "points": 10,
+      "options": ["A", "B"],
+      "correctAnswer": "A"
+    },
+    {
+      "questionText": "No question number",
+      "questionType": "multiple_choice",
+      "points": 10,
+      "options": ["A", "B"],
+      "correctAnswer": "A"
+    },
+    {
+      "questionType": "multiple_choice",
+      "questionText": "Valid question 2",
+      "questionNumber": 4,
+      "points": 10,
+      "options": ["X", "Y"],
+      "correctAnswer": "X"
+    }
+  ]
+}

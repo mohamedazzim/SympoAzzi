@@ -1,0 +1,32 @@
+{
+  "all": true,
+  "include": [
+    "server/**/*.ts",
+    "client/src/**/*.tsx",
+    "client/src/**/*.ts",
+    "shared/**/*.ts"
+  ],
+  "exclude": [
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "**/tests/**",
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/*.d.ts",
+    "**/vite.config.ts",
+    "**/tailwind.config.ts"
+  ],
+  "reporter": [
+    "text",
+    "html",
+    "lcov",
+    "json"
+  ],
+  "report-dir": "tests/reports/coverage",
+  "temp-dir": "tests/reports/.nyc_output",
+  "check-coverage": true,
+  "lines": 70,
+  "statements": 70,
+  "functions": 70,
+  "branches": 70
+}

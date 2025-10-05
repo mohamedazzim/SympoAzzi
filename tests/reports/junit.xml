@@ -1,0 +1,197 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuites name="jest tests" tests="46" failures="24" errors="0" time="21.759">
+  <testsuite name="Public Registration Flow Tests" errors="0" failures="24" skipped="0" timestamp="2025-10-03T14:01:44" time="21.298" tests="46">
+    <testcase classname="Public Registration Flow Tests" name="should successfully register via public form" time="0.309">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Public Registration Flow Tests" name="should validate form slug - reject invalid slug" time="0.151">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Public Registration Flow Tests" name="should reject registration when form is inactive" time="0.146">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Public Registration Flow Tests" name="should reject registration with more than 1 technical event" time="0.159">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Public Registration Flow Tests" name="should reject registration with more than 2 non-technical events" time="0.138">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Public Registration Flow Tests" name="should allow 1 technical + 1 non-technical event registration" time="0.143">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Public Registration Flow Tests" name="should reject registration with time overlapping events" time="0.142">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Public Registration Flow Tests" name="should validate required registration data fields" time="0.145">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Public Registration Flow Tests" name="should require submittedData and selectedEvents" time="0.134">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Public Registration Flow Tests" name="should require at least one event to be selected" time="0.134">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="On-Spot Registration Tests (Registration Committee)" name="should create participant with auto-generated credentials" time="0.447">
+    </testcase>
+    <testcase classname="On-Spot Registration Tests (Registration Committee)" name="should increment counter for multiple participants in same event" time="0.527">
+      <failure>Error: expect(received).toContain(expected) // indexOf
+
+Expected substring: &quot;002&quot;
+Received string:    &quot;quiz-master-challenge-1759500115246-carol-011&quot;
+    at /home/runner/workspace/tests/integration/participant-registration.test.ts:377:33
+    at Generator.next (&lt;anonymous&gt;)
+    at fulfilled (/home/runner/workspace/tests/integration/participant-registration.test.ts:5:58)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)</failure>
+    </testcase>
+    <testcase classname="On-Spot Registration Tests (Registration Committee)" name="should generate credentials in eventname-firstname-counter format" time="0.302">
+    </testcase>
+    <testcase classname="On-Spot Registration Tests (Registration Committee)" name="should generate password in shortname+counter format" time="0.338">
+    </testcase>
+    <testcase classname="On-Spot Registration Tests (Registration Committee)" name="should create multiple event credentials for participant" time="0.401">
+    </testcase>
+    <testcase classname="On-Spot Registration Tests (Registration Committee)" name="should require authentication for on-spot registration" time="0.081">
+    </testcase>
+    <testcase classname="On-Spot Registration Tests (Registration Committee)" name="should require registration committee role" time="0.218">
+    </testcase>
+    <testcase classname="On-Spot Registration Tests (Registration Committee)" name="should validate required fields for on-spot registration" time="0.104">
+    </testcase>
+    <testcase classname="On-Spot Registration Tests (Registration Committee)" name="should reject duplicate email for on-spot registration" time="0.375">
+    </testcase>
+    <testcase classname="On-Spot Registration Tests (Registration Committee)" name="should send credentials via email after creation" time="0.292">
+    </testcase>
+    <testcase classname="Credential Export Tests" name="should export credentials as CSV" time="0.83">
+    </testcase>
+    <testcase classname="Credential Export Tests" name="should verify CSV format with correct headers" time="0.597">
+    </testcase>
+    <testcase classname="Credential Export Tests" name="should include participant data in CSV export" time="0.576">
+    </testcase>
+    <testcase classname="Credential Export Tests" name="should export credentials as PDF" time="0.66">
+    </testcase>
+    <testcase classname="Credential Export Tests" name="should validate PDF generation response" time="0.813">
+    </testcase>
+    <testcase classname="Credential Export Tests" name="should require authentication for CSV export" time="0.466">
+    </testcase>
+    <testcase classname="Credential Export Tests" name="should require authentication for PDF export" time="0.484">
+    </testcase>
+    <testcase classname="Credential Export Tests" name="should require registration committee role for CSV export" time="0.608">
+    </testcase>
+    <testcase classname="Credential Export Tests" name="should properly escape CSV special characters" time="0.934">
+    </testcase>
+    <testcase classname="Registration Approval Workflow Tests" name="should approve registration and create user account" time="0.054">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Registration Approval Workflow Tests" name="should generate credentials on approval" time="0.06">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Registration Approval Workflow Tests" name="should transition status from pending to paid on approval" time="0.053">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Registration Approval Workflow Tests" name="should send approval email with credentials" time="0.056">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Registration Approval Workflow Tests" name="should require authentication for approval" time="0.053">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Registration Approval Workflow Tests" name="should require registration committee or super admin role for approval" time="0.058">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Registration Approval Workflow Tests" name="should allow super admin to approve registration" time="0.059">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Registration Approval Workflow Tests" name="should reject approval of already processed registration" time="0.059">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Registration Approval Workflow Tests" name="should return 404 for non-existent registration" time="0.053">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Registration Approval Workflow Tests" name="should create participant records for all selected events on approval" time="0.062">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Credential Management Tests" name="should view participant credentials" time="0.385">
+    </testcase>
+    <testcase classname="Credential Management Tests" name="should display credentials in response after on-spot creation" time="0.483">
+    </testcase>
+    <testcase classname="Credential Management Tests" name="should require authentication to view credentials" time="0.274">
+    </testcase>
+    <testcase classname="Credential Management Tests" name="should require participant role to view own credentials" time="0.304">
+    </testcase>
+    <testcase classname="Registration List and Query Tests" name="should list all registrations for registration committee" time="0.055">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Registration List and Query Tests" name="should list all registrations for super admin" time="0.065">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+    <testcase classname="Registration List and Query Tests" name="should deny access to registrations list for non-authorized roles" time="0.053">
+      <failure>NeonDbError: null value in column &quot;form_slug&quot; of relation &quot;registration_forms&quot; violates not-null constraint
+    at execute (/home/runner/workspace/node_modules/@neondatabase/serverless/index.js:1559:55)
+    at processTicksAndRejections (node:internal/process/task_queues:95:5)
+    at NeonHttpPreparedQuery.execute (/home/runner/workspace/node_modules/src/neon-http/session.ts:68:18)</failure>
+    </testcase>
+  </testsuite>
+</testsuites>

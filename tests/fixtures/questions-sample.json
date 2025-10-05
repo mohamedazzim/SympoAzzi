@@ -1,0 +1,88 @@
+{
+  "questions": [
+    {
+      "questionType": "multiple_choice",
+      "questionText": "What is the capital of France?",
+      "questionNumber": 1,
+      "points": 10,
+      "options": ["London", "Berlin", "Paris", "Madrid"],
+      "correctAnswer": "Paris"
+    },
+    {
+      "questionType": "true_false",
+      "questionText": "JavaScript is a compiled language.",
+      "questionNumber": 2,
+      "points": 5,
+      "options": ["True", "False"],
+      "correctAnswer": "False"
+    },
+    {
+      "questionType": "multiple_choice",
+      "questionText": "Which data structure uses LIFO?",
+      "questionNumber": 3,
+      "points": 10,
+      "options": ["Queue", "Stack", "Array", "Linked List"],
+      "correctAnswer": "Stack"
+    },
+    {
+      "questionType": "short_answer",
+      "questionText": "What does HTML stand for?",
+      "questionNumber": 4,
+      "points": 5,
+      "expectedOutput": "HyperText Markup Language"
+    },
+    {
+      "questionType": "coding",
+      "questionText": "Write a function that returns the sum of two numbers",
+      "questionNumber": 5,
+      "points": 20,
+      "testCases": [
+        { "input": [2, 3], "expectedOutput": 5 },
+        { "input": [10, 15], "expectedOutput": 25 },
+        { "input": [-5, 5], "expectedOutput": 0 }
+      ]
+    },
+    {
+      "questionType": "multiple_choice",
+      "questionText": "Which HTTP method is idempotent?",
+      "questionNumber": 6,
+      "points": 10,
+      "options": ["POST", "GET", "PATCH", "All of the above"],
+      "correctAnswer": "GET"
+    },
+    {
+      "questionType": "coding",
+      "questionText": "Write a function to check if a string is a palindrome",
+      "questionNumber": 7,
+      "points": 25,
+      "testCases": [
+        { "input": ["racecar"], "expectedOutput": true },
+        { "input": ["hello"], "expectedOutput": false },
+        { "input": ["A man a plan a canal Panama"], "expectedOutput": true }
+      ]
+    },
+    {
+      "questionType": "multiple_choice",
+      "questionText": "What is the time complexity of binary search?",
+      "questionNumber": 8,
+      "points": 10,
+      "options": ["O(n)", "O(log n)", "O(n^2)", "O(1)"],
+      "correctAnswer": "O(log n)"
+    },
+    {
+      "questionType": "short_answer",
+      "questionText": "What design pattern ensures a class has only one instance?",
+      "questionNumber": 9,
+      "points": 5,
+      "expectedOutput": "Singleton"
+    },
+    {
+      "questionType": "true_false",
+      "questionText": "CSS stands for Cascading Style Sheets.",
+      "questionNumber": 10,
+      "points": 5,
+      "options": ["True", "False"],
+      "correctAnswer": "True"
+    }
+  ]
+}
