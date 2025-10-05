@@ -16,18 +16,35 @@ interface EmailOptions {
 }
 
 class EmailService {
-  private transporter: Transporter;
+  private transporter: Transporter | null;
+  private isDevelopmentMode: boolean;
   
   constructor() {
-    this.transporter = nodemailer.createTransport({
-      host: process.env.SMTP_HOST || 'smtp.ethereal.email',
-      port: parseInt(process.env.SMTP_PORT || '587'),
-      secure: false,
-      auth: {
-        user: process.env.SMTP_USER || 'ethereal.user@ethereal.email',
-        pass: process.env.SMTP_PASS || 'ethereal.password'
-      }
-    });
+    // Check if SMTP credentials are configured
+    const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
+    this.isDevelopmentMode = !hasSmtpConfig;
+    
+    if (hasSmtpConfig) {
+      // Production mode: use real SMTP
+      this.transporter = nodemailer.createTransport({
+        host: process.env.SMTP_HOST,
+        port: parseInt(process.env.SMTP_PORT || '587'),
+        secure: process.env.SMTP_PORT === '465',
+        auth: {
+          user: process.env.SMTP_USER,
+          pass: process.env.SMTP_PASS
+        },
+        tls: {
+          rejectUnauthorized: false
+        }
+      });
+      console.log('✅ Email service initialized with SMTP configuration');
+    } else {
+      // Development mode: log emails instead of sending
+      this.transporter = null;
+      console.log('⚠️  Email service running in DEVELOPMENT MODE - emails will be logged, not sent');
+      console.log('   To enable email sending, configure SMTP secrets: SMTP_HOST, SMTP_USER, SMTP_PASS');
+    }
   }
   
   private async sendWithRetry(
@@ -35,6 +52,21 @@ class EmailService {
     maxRetries: number = 3,
     attempt: number = 1
   ): Promise<{ success: boolean; messageId?: string; error?: string; retryCount: number }> {
+    // Development mode: log email instead of sending
+    if (this.isDevelopmentMode || !this.transporter) {
+      console.log('\n📧 [DEV MODE] Email would be sent:');
+      console.log('   To:', mailOptions.to);
+      console.log('   From:', mailOptions.from);
+      console.log('   Subject:', mailOptions.subject);
+      console.log('   (Email content logged to email_logs table)\n');
+      return { 
+        success: true, 
+        messageId: `dev-mode-${Date.now()}`, 
+        retryCount: 0 
+      };
+    }
+    
+    // Production mode: actually send email
     try {
       const info = await this.transporter.sendMail(mailOptions);
       return { success: true, messageId: info.messageId, retryCount: attempt - 1 };
@@ -117,20 +149,29 @@ class EmailService {
       retryCount: result.retryCount
     };
     
-    await storage.createEmailLog({
-      recipientEmail: options.to,
-      recipientName: recipientName || null,
-      subject: options.subject,
-      templateType,
-      status: result.success ? 'sent' : 'failed',
-      metadata,
-      errorMessage: result.error || null
-    });
+    // Log email to database (non-blocking - don't fail email sending if logging fails)
+    try {
+      await storage.createEmailLog({
+        recipientEmail: options.to,
+        recipientName: recipientName || null,
+        subject: options.subject,
+        templateType,
+        status: result.success ? 'sent' : 'failed',
+        metadata,
+        errorMessage: result.error || null
+      });
+    } catch (logError) {
+      console.warn('⚠️  Failed to log email to database:', logError instanceof Error ? logError.message : 'Unknown error');
+    }
     
     if (result.success) {
-      console.log(`Email sent successfully to ${options.to} (${templateType})`);
+      if (this.isDevelopmentMode) {
+        console.log(`✅ [DEV MODE] Email logged successfully: ${templateType} to ${options.to}`);
+      } else {
+        console.log(`✅ Email sent successfully to ${options.to} (${templateType})`);
+      }
     } else {
-      console.error(`Email send failed to ${options.to}:`, result.error);
+      console.error(`❌ Email send failed to ${options.to}:`, result.error);
     }
     
     return result;
