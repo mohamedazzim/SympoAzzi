@@ -42,14 +42,17 @@ function generateHumanReadableCredentials(
   eventName: string,
   counter: number,
 ): { username: string; password: string } {
-  const firstName = fullName.split(" ")[0].toLowerCase()
-  const shortName = fullName.split(" ").pop()?.toLowerCase() || fullName.substring(0, 5).toLowerCase()
-  const cleanEventName = eventName.toLowerCase().replace(/\s+/g, "-")
-  const formattedCounter = String(counter).padStart(3, "0")
+  const firstName = fullName.split(" ")[0]
+  const cleanEventName = eventName.toLowerCase().replace(/[^a-z0-9]/g, "")
+  
+  const eventPrefix = cleanEventName.substring(0, 3)
+  const namePrefix = firstName.toLowerCase().substring(0, 4)
+  const passwordPrefix = firstName.substring(0, 3)
+  const capitalizedPasswordPrefix = passwordPrefix.charAt(0).toUpperCase() + passwordPrefix.slice(1).toLowerCase()
 
   return {
-    username: `${cleanEventName}-${firstName}-${formattedCounter}`,
-    password: `${shortName}${formattedCounter}`,
+    username: `${eventPrefix}${namePrefix}`,
+    password: `${capitalizedPasswordPrefix}@${counter}`,
   }
 }
 
