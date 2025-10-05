@@ -36,6 +36,7 @@ export default function TakeTestPage() {
   const [showFullscreenModal, setShowFullscreenModal] = useState(false);
   const [showTimeWarning, setShowTimeWarning] = useState(false);
   const [timeWarningMessage, setTimeWarningMessage] = useState('');
+  const [showSubmitConfirm, setShowSubmitConfirm] = useState(false);
   
   // Ref to track test status for event handlers
   const testStatusRef = useRef<string>('in_progress');
@@ -485,12 +486,15 @@ export default function TakeTestPage() {
     const totalQuestions = attempt.questions.length;
 
     if (answeredCount < totalQuestions) {
-      const confirmed = window.confirm(
-        `You have answered ${answeredCount} out of ${totalQuestions} questions. Are you sure you want to submit?`
-      );
-      if (!confirmed) return;
+      setShowSubmitConfirm(true);
+      return;
     }
 
+    submitTestMutation.mutate();
+  };
+
+  const confirmSubmit = () => {
+    setShowSubmitConfirm(false);
     submitTestMutation.mutate();
   };
 
@@ -525,9 +529,8 @@ export default function TakeTestPage() {
     );
   }
 
-  const currentQuestion: Question & { questionText: string } = attempt.questions[currentQuestionIndex];
+  const currentQuestion = attempt.questions[currentQuestionIndex];
   const progress = ((currentQuestionIndex + 1) / attempt.questions.length) * 100;
-  const questionText: string = String(currentQuestion.questionText || '');
 
   // Show begin test screen
   if (!hasStarted) {
@@ -621,6 +624,43 @@ export default function TakeTestPage() {
         </div>
       )}
 
+      {/* Submit Confirmation Modal - In Fullscreen */}
+      {showSubmitConfirm && (
+        <div className="fixed inset-0 bg-black/80 z-50 flex items-center justify-center">
+          <Card className="max-w-md">
+            <CardHeader className="text-center">
+              <div className="mx-auto mb-4 h-12 w-12 rounded-full bg-yellow-100 flex items-center justify-center">
+                <AlertTriangle className="h-6 w-6 text-yellow-600" />
+              </div>
+              <CardTitle className="text-xl">Submit Test?</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <p className="text-sm text-gray-600 text-center">
+                You have answered {Object.keys(answers).length} out of {attempt?.questions.length} questions. 
+                Are you sure you want to submit?
+              </p>
+              <div className="flex gap-3">
+                <Button
+                  onClick={() => setShowSubmitConfirm(false)}
+                  variant="outline"
+                  className="flex-1"
+                  data-testid="button-cancel-submit"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  onClick={confirmSubmit}
+                  className="flex-1"
+                  data-testid="button-confirm-submit"
+                >
+                  Submit Test
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
       <div className="p-8 max-w-5xl mx-auto">
         {/* Header with timer and progress */}
         <div className="mb-6 flex justify-between items-center">
@@ -696,7 +736,7 @@ export default function TakeTestPage() {
           </CardHeader>
           <CardContent className="space-y-6">
             <div className="text-lg" data-testid="text-question">
-              {questionText}
+              {String(currentQuestion.questionText || '')}
             </div>
 
             {/* Multiple Choice */}
@@ -705,14 +745,14 @@ export default function TakeTestPage() {
                 value={answers[currentQuestion.id] || ''}
                 onValueChange={(value) => handleAnswerChange(currentQuestion.id, value)}
               >
-                {Array.isArray(currentQuestion.options) && currentQuestion.options.map((option: any, index: number) => (
+                {Array.isArray(currentQuestion.options) ? currentQuestion.options.map((option: any, index: number) => (
                   <div key={index} className="flex items-center space-x-2 p-3 rounded border hover:bg-gray-50">
                     <RadioGroupItem value={String(option)} id={`option-${index}`} data-testid={`radio-option-${index}`} />
                     <Label htmlFor={`option-${index}`} className="flex-1 cursor-pointer">
                       {String(option)}
                     </Label>
                   </div>
-                ))}
+                )) : null}
               </RadioGroup>
             )}
 
