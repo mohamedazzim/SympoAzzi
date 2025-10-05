@@ -62,11 +62,14 @@ export default function TestResultsPage() {
             </CardHeader>
             <CardContent>
               <div className="text-center space-y-4">
-                <p className="text-green-800 text-lg" data-testid="text-submission-message">
-                  ✅ Your responses have been successfully submitted.
+                <p className="text-green-800 text-lg font-semibold" data-testid="text-submission-message">
+                  Submission Received
                 </p>
-                <p className="text-green-700" data-testid="text-wait-message">
-                  Please wait until the event concludes to view your results.
+                <p className="text-green-700 text-base" data-testid="text-wait-message">
+                  Wait till the test duration completely
+                </p>
+                <p className="text-sm text-green-600 mt-2" data-testid="text-results-info">
+                  Your scores and correct answers will be visible after the test duration ends.
                 </p>
                 {attempt.event?.endDate && (
                   <p className="text-sm text-green-600" data-testid="text-event-end-time">
@@ -318,8 +321,16 @@ export default function TestResultsPage() {
                   )}
 
                   {!answer && (
-                    <div className="mt-3 pl-9 text-sm text-gray-500 italic">
-                      Not answered
+                    <div className="mt-3 pl-9">
+                      <div className="text-sm text-gray-500 italic">
+                        Not answered
+                      </div>
+                      {isAutoGraded && question.correctAnswer && (
+                        <div className="text-sm mt-1">
+                          <span className="text-gray-600">Correct Answer: </span>
+                          <span className="font-medium text-green-600">{question.correctAnswer}</span>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
