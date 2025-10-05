@@ -45,8 +45,8 @@ export default function TestResultsPage() {
     );
   }
 
-  // Check if event has ended
-  const eventEnded = attempt.eventEnded ?? true; // Default to true for safety
+  // Check if event has ended - CRITICAL: Default to false to hide results until event ends
+  const eventEnded = attempt.eventEnded ?? false;
 
   // If event hasn't ended, show submission confirmation
   if (!eventEnded) {

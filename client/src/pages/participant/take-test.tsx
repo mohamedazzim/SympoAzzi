@@ -204,22 +204,18 @@ export default function TakeTestPage() {
     return () => clearInterval(timer);
   }, [timeRemaining, attempt, hasStarted, submitTestMutation, toast]);
 
-  // Handle fullscreen start
+  // Handle fullscreen start - ALWAYS enforce fullscreen
   const handleBeginTest = async () => {
-    if (rules?.forceFullscreen) {
-      try {
-        await document.documentElement.requestFullscreen();
-        setHasStarted(true);
-      } catch (err) {
-        console.error('Failed to enter fullscreen:', err);
-        toast({
-          title: 'Fullscreen required',
-          description: 'Please allow fullscreen mode to start the test',
-          variant: 'destructive',
-        });
-      }
-    } else {
+    try {
+      await document.documentElement.requestFullscreen();
       setHasStarted(true);
+    } catch (err) {
+      console.error('Failed to enter fullscreen:', err);
+      toast({
+        title: 'Fullscreen required',
+        description: 'Please allow fullscreen mode to start the test',
+        variant: 'destructive',
+      });
     }
   };
 
@@ -284,9 +280,9 @@ export default function TakeTestPage() {
     });
   }, [attemptId, disqualifyMutation, submitTestMutation, toast]);
 
-  // Fullscreen enforcement after test started
+  // Fullscreen enforcement after test started - ALWAYS enforce
   useEffect(() => {
-    if (!rules?.forceFullscreen || !hasStarted) return;
+    if (!hasStarted) return;
 
     const handleFullscreenChange = () => {
       if (!document.fullscreenElement && testStatusRef.current === 'in_progress') {
@@ -303,7 +299,7 @@ export default function TakeTestPage() {
     return () => {
       document.removeEventListener('fullscreenchange', handleFullscreenChange);
     };
-  }, [rules?.forceFullscreen, hasStarted, logViolation, violationCount]);
+  }, [hasStarted, logViolation, violationCount]);
 
   // Cleanup fullscreen only on unmount
   useEffect(() => {
@@ -339,9 +335,9 @@ export default function TakeTestPage() {
     };
   }, [hasStarted, toast, logViolation]);
 
-  // Tab switch detection with visibilitychange
+  // Tab switch detection with visibilitychange - ALWAYS monitor
   useEffect(() => {
-    if (!rules?.noTabSwitch || !hasStarted) return;
+    if (!hasStarted) return;
 
     const handleVisibilityChange = () => {
       if (document.hidden && attempt?.status === 'in_progress') {
@@ -351,11 +347,11 @@ export default function TakeTestPage() {
 
     document.addEventListener('visibilitychange', handleVisibilityChange);
     return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [rules?.noTabSwitch, attempt?.status, hasStarted, logViolation]);
+  }, [attempt?.status, hasStarted, logViolation]);
 
-  // Backup tab switch detection with blur/focus
+  // Backup tab switch detection with blur/focus - ALWAYS monitor
   useEffect(() => {
-    if (!rules?.noTabSwitch || !hasStarted) return;
+    if (!hasStarted) return;
 
     const handleBlur = () => {
       if (attempt?.status === 'in_progress') {
@@ -365,7 +361,7 @@ export default function TakeTestPage() {
 
     window.addEventListener('blur', handleBlur);
     return () => window.removeEventListener('blur', handleBlur);
-  }, [rules?.noTabSwitch, attempt?.status, hasStarted, logViolation]);
+  }, [attempt?.status, hasStarted, logViolation]);
 
   // Enhanced keyboard shortcuts blocking
   useEffect(() => {
@@ -439,28 +435,26 @@ export default function TakeTestPage() {
         return;
       }
 
-      // Block developer tools and other shortcuts if disableShortcuts is enabled
-      if (rules?.disableShortcuts) {
-        if (
-          e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'x' || e.key === 'p') ||
-          e.key === 'F12' ||
-          (e.ctrlKey && e.shiftKey && e.key === 'I') ||
-          (e.ctrlKey && e.shiftKey && e.key === 'J') ||
-          (e.ctrlKey && e.key === 'u')
-        ) {
-          e.preventDefault();
-          logViolation('restricted_shortcut');
-        }
+      // Block developer tools and other shortcuts - ALWAYS enforce
+      if (
+        (e.ctrlKey && (e.key === 'c' || e.key === 'v' || e.key === 'x' || e.key === 'p')) ||
+        e.key === 'F12' ||
+        (e.ctrlKey && e.shiftKey && e.key === 'I') ||
+        (e.ctrlKey && e.shiftKey && e.key === 'J') ||
+        (e.ctrlKey && e.key === 'u')
+      ) {
+        e.preventDefault();
+        logViolation('restricted_shortcut');
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [hasStarted, rules?.disableShortcuts, toast, logViolation]);
+  }, [hasStarted, toast, logViolation]);
 
-  // Prevent refresh
+  // Prevent refresh - ALWAYS enforce
   useEffect(() => {
-    if (!rules?.noRefresh) return;
+    if (!hasStarted) return;
 
     const handleBeforeUnload = (e: BeforeUnloadEvent) => {
       e.preventDefault();
@@ -471,7 +465,7 @@ export default function TakeTestPage() {
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => window.removeEventListener('beforeunload', handleBeforeUnload);
-  }, [rules, logViolation]);
+  }, [hasStarted, logViolation]);
 
   const saveAnswerMutation = useMutation({
     mutationFn: async ({ questionId, answer }: { questionId: string; answer: string }) => {
@@ -555,15 +549,13 @@ export default function TakeTestPage() {
                   <ul className="list-disc list-inside mt-2 space-y-1">
                     <li>You have {attempt.round.duration} minutes to complete this test</li>
                     <li>Answer all {attempt.questions.length} questions</li>
-                    {rules?.forceFullscreen && <li>You must stay in fullscreen mode</li>}
-                    {rules?.noTabSwitch && <li>Do not switch tabs or windows</li>}
-                    {rules?.noRefresh && <li>Do not refresh the page</li>}
-                    {rules?.disableShortcuts && <li>Copy/paste/print shortcuts are disabled</li>}
-                    {rules?.autoSubmitOnViolation && (
-                      <li className="text-red-600 font-medium">
-                        Test will auto-submit after {rules.maxTabSwitchWarnings} violations
-                      </li>
-                    )}
+                    <li className="text-red-600 font-medium">You MUST stay in fullscreen mode</li>
+                    <li className="text-red-600 font-medium">Do NOT switch tabs or windows</li>
+                    <li className="text-red-600 font-medium">Do NOT refresh the page</li>
+                    <li className="text-red-600 font-medium">All shortcuts (Alt+Tab, Ctrl+R, F5, etc.) are disabled</li>
+                    <li className="text-red-600 font-bold">
+                      ⚠️ WARNING: 3 violations will auto-eliminate you from the event
+                    </li>
                   </ul>
                 </AlertDescription>
               </Alert>
@@ -584,7 +576,7 @@ export default function TakeTestPage() {
                   className="px-8"
                   data-testid="button-begin-test"
                 >
-                  {rules?.forceFullscreen ? 'Begin Test in Fullscreen' : 'Begin Test'}
+                  Begin Test in Fullscreen
                 </Button>
                 <p className="text-sm text-gray-500 mt-3">
                   Click the button above to start your test
