@@ -20,7 +20,7 @@ export default function ParticipantLayout({ children }: ParticipantLayoutProps) 
   });
 
   const eventName = credentialData?.event?.name || 'Event';
-  const participantName = user?.fullName || 'Participant';
+  const participantName = user?.fullName || user?.email?.split('@')[0] || user?.username || 'Participant';
 
   return (
     <div className="min-h-screen bg-gray-50">

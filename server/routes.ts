@@ -1321,17 +1321,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       // Check if results should be shown:
       // 1. Event has ended (event.endDate passed), OR
-      // 2. Round duration has elapsed (current time > startedAt + duration)
+      // 2. Participant's attempt duration has elapsed (current time > attempt.startedAt + duration)
       const eventHasEnded = event?.endDate ? new Date() > new Date(event.endDate) : false
       
-      // Calculate if the round duration has elapsed
-      let roundDurationElapsed = false
-      if (round?.startedAt && round?.duration) {
-        const roundEndTime = new Date(round.startedAt).getTime() + (round.duration * 60 * 1000)
-        roundDurationElapsed = Date.now() > roundEndTime
+      // Calculate if the participant's attempt duration has elapsed
+      // Use attempt.startedAt (when participant started) not round.startedAt (when admin started round)
+      let attemptDurationElapsed = false
+      if (attempt.startedAt && round?.duration) {
+        const attemptEndTime = new Date(attempt.startedAt).getTime() + (round.duration * 60 * 1000)
+        attemptDurationElapsed = Date.now() > attemptEndTime
       }
       
-      const eventEnded = eventHasEnded || roundDurationElapsed
+      const eventEnded = eventHasEnded || attemptDurationElapsed
       
       const isAdmin = req.user!.role === "super_admin" || req.user!.role === "event_admin"
 
