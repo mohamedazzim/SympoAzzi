@@ -331,6 +331,56 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json(req.user)
   })
 
+  app.post("/api/test-email", requireAuth, requireSuperAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const { email } = req.body
+      
+      if (!email) {
+        return res.status(400).json({ message: "Email address is required" })
+      }
+
+      const result = await emailService.sendEmail(
+        {
+          to: email,
+          subject: "Test Email - SMTP Configuration Verified",
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <h2 style="color: #2563eb;">Email Configuration Test Successful! ✅</h2>
+              <p>This is a test email to verify your SMTP configuration is working correctly.</p>
+              <div style="background: #f3f4f6; padding: 15px; border-radius: 8px; margin: 20px 0;">
+                <p style="margin: 5px 0;"><strong>SMTP Host:</strong> ${process.env.SMTP_HOST}</p>
+                <p style="margin: 5px 0;"><strong>SMTP Port:</strong> ${process.env.SMTP_PORT}</p>
+                <p style="margin: 5px 0;"><strong>From:</strong> ${process.env.SMTP_FROM}</p>
+                <p style="margin: 5px 0;"><strong>Sent At:</strong> ${new Date().toLocaleString()}</p>
+              </div>
+              <p>Your email service is now ready to send notifications to participants!</p>
+            </div>
+          `,
+          metadata: { testEmail: true }
+        },
+        'test_email',
+        req.user?.fullName
+      )
+
+      if (result.success) {
+        res.json({ 
+          success: true, 
+          message: `Test email sent successfully to ${email}`,
+          messageId: result.messageId 
+        })
+      } else {
+        res.status(500).json({ 
+          success: false, 
+          message: "Failed to send test email", 
+          error: result.error 
+        })
+      }
+    } catch (error) {
+      console.error("Test email error:", error)
+      res.status(500).json({ message: "Internal server error" })
+    }
+  })
+
   app.get(
     "/api/participants/my-credential",
     requireAuth,
