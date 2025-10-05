@@ -1319,11 +1319,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get event to check if it has ended
       const event = round ? await storage.getEvent(round.eventId) : null
 
-      // Check if event has ended (for participants only)
-      const eventEnded = event?.endDate ? new Date() > new Date(event.endDate) : false
+      // Check if results should be shown:
+      // 1. Event has ended (event.endDate passed), OR
+      // 2. Round has been completed (round.status === 'completed' or round.endedAt exists)
+      const eventHasEnded = event?.endDate ? new Date() > new Date(event.endDate) : false
+      const roundHasEnded = round?.status === 'completed' || (round?.endedAt ? new Date() > new Date(round.endedAt) : false)
+      const eventEnded = eventHasEnded || roundHasEnded
+      
       const isAdmin = req.user!.role === "super_admin" || req.user!.role === "event_admin"
 
-      // Hide scores and answers if event hasn't ended (for participants only)
+      // Hide scores and answers if event/round hasn't ended (for participants only)
       let responseData: any = {
         ...attempt,
         round,
