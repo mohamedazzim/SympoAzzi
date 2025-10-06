@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import AdminLayout from '@/components/layouts/AdminLayout';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,8 +12,9 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Filter, Download, Eye, Search, Calendar as CalendarIcon, Send } from 'lucide-react';
+import { Mail, Filter, Download, Eye, Search, Calendar as CalendarIcon, Send, CheckCircle2, XCircle, AlertCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import type { EmailLog } from '@shared/schema';
 import type { DateRange } from 'react-day-picker';
@@ -27,6 +28,10 @@ export default function EmailLogsPage() {
   const [dateRange, setDateRange] = useState<DateRange | undefined>(undefined);
   const [page, setPage] = useState<number>(1);
   const [selectedLog, setSelectedLog] = useState<EmailLog | null>(null);
+  const [testEmailDialogOpen, setTestEmailDialogOpen] = useState<boolean>(false);
+  const [testEmailAddress, setTestEmailAddress] = useState<string>('');
+  const [testEmailName, setTestEmailName] = useState<string>('Test User');
+  const [testResult, setTestResult] = useState<{ success: boolean; message: string; messageId?: string } | null>(null);
   const logsPerPage = 50;
 
   const buildQueryKey = () => {
@@ -108,21 +113,27 @@ export default function EmailLogsPage() {
   };
 
   const testEmailMutation = useMutation({
-    mutationFn: async () => {
-      const response = await apiRequest('POST', '/api/test-email', {
-        to: 'azzimandabdullah1@gmail.com',
-        name: 'Test User'
-      });
+    mutationFn: async (emailData: { to: string; name: string }) => {
+      const response = await apiRequest('POST', '/api/test-email', emailData);
       return response;
     },
     onSuccess: (data: any) => {
       queryClient.invalidateQueries({ queryKey: ['/api/email-logs'] });
       if (data.success) {
+        setTestResult({
+          success: true,
+          message: `Test email sent successfully to ${testEmailAddress}`,
+          messageId: data.messageId
+        });
         toast({
           title: 'Test email sent successfully',
-          description: `Email sent to azzimandabdullah1@gmail.com. Message ID: ${data.messageId || 'N/A'}`,
+          description: `Email sent to ${testEmailAddress}. Message ID: ${data.messageId || 'N/A'}`,
         });
       } else {
+        setTestResult({
+          success: false,
+          message: data.error || 'Unknown error occurred'
+        });
         toast({
           title: 'Failed to send test email',
           description: data.error || 'Unknown error occurred',
@@ -131,6 +142,10 @@ export default function EmailLogsPage() {
       }
     },
     onError: (error: any) => {
+      setTestResult({
+        success: false,
+        message: error.message || 'Failed to send test email'
+      });
       toast({
         title: 'Error sending test email',
         description: error.message || 'Failed to send test email',
@@ -140,7 +155,19 @@ export default function EmailLogsPage() {
   });
 
   const handleSendTestEmail = () => {
-    testEmailMutation.mutate();
+    if (!testEmailAddress || !testEmailAddress.includes('@')) {
+      toast({
+        title: 'Invalid email',
+        description: 'Please enter a valid email address',
+        variant: 'destructive'
+      });
+      return;
+    }
+    setTestResult(null);
+    testEmailMutation.mutate({
+      to: testEmailAddress,
+      name: testEmailName
+    });
   };
 
   const templateTypes = [
@@ -164,16 +191,73 @@ export default function EmailLogsPage() {
             </p>
           </div>
           <div className="flex items-center gap-3">
-            <Button
-              onClick={handleSendTestEmail}
-              disabled={testEmailMutation.isPending}
-              data-testid="button-test-email"
-              className="flex items-center gap-2"
-              variant="outline"
-            >
-              <Send className="h-4 w-4" />
-              {testEmailMutation.isPending ? 'Sending...' : 'Test Email'}
-            </Button>
+            <Dialog open={testEmailDialogOpen} onOpenChange={setTestEmailDialogOpen}>
+              <DialogTrigger asChild>
+                <Button
+                  data-testid="button-open-test-email"
+                  className="flex items-center gap-2"
+                  variant="outline"
+                >
+                  <Send className="h-4 w-4" />
+                  Test Email
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="max-w-md">
+                <DialogHeader>
+                  <DialogTitle>Test SMTP Configuration</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4">
+                  <div>
+                    <Label htmlFor="test-email-address">Email Address</Label>
+                    <Input
+                      id="test-email-address"
+                      type="email"
+                      placeholder="test@example.com"
+                      value={testEmailAddress}
+                      onChange={(e) => setTestEmailAddress(e.target.value)}
+                      data-testid="input-test-email-address"
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="test-email-name">Recipient Name</Label>
+                    <Input
+                      id="test-email-name"
+                      type="text"
+                      placeholder="Test User"
+                      value={testEmailName}
+                      onChange={(e) => setTestEmailName(e.target.value)}
+                      data-testid="input-test-email-name"
+                    />
+                  </div>
+                  {testResult && (
+                    <Alert variant={testResult.success ? 'default' : 'destructive'} data-testid="alert-test-result">
+                      {testResult.success ? (
+                        <CheckCircle2 className="h-4 w-4" />
+                      ) : (
+                        <XCircle className="h-4 w-4" />
+                      )}
+                      <AlertTitle>{testResult.success ? 'Success' : 'Failed'}</AlertTitle>
+                      <AlertDescription>
+                        {testResult.message}
+                        {testResult.messageId && (
+                          <div className="mt-2 text-xs">
+                            <strong>Message ID:</strong> {testResult.messageId}
+                          </div>
+                        )}
+                      </AlertDescription>
+                    </Alert>
+                  )}
+                  <Button
+                    onClick={handleSendTestEmail}
+                    disabled={testEmailMutation.isPending}
+                    data-testid="button-send-test-email"
+                    className="w-full"
+                  >
+                    {testEmailMutation.isPending ? 'Sending...' : 'Send Test Email'}
+                  </Button>
+                </div>
+              </DialogContent>
+            </Dialog>
             <Button
               onClick={exportToCSV}
               data-testid="button-export-csv"
