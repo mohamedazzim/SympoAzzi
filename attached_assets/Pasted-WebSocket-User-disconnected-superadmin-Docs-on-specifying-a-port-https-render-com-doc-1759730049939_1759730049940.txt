@@ -1,0 +1,57 @@
+WebSocket: User disconnected: superadmin
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+     ==> Detected service running on port 10000
+5:48:38 AM [express] GET /api/registrations 304 in 446ms :: []
+5:45:54 AM [express] GET /api/events/for-registration 500 in 346ms :: {"message":"Internal server er…
+}
+  sourceError: undefined
+  routine: 'errorMissingColumn',
+  line: '3716',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '139',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+    at async file:///opt/render/project/src/dist/index.js:2704:32 {
+    at async Promise.all (index 0)
+    at async file:///opt/render/project/src/dist/index.js:2706:27
+    at async DatabaseStorage.getRoundsByEvent (file:///opt/render/project/src/dist/index.js:454:12)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1556:55)
+Get events for registration error: NeonDbError: column "results_published" does not exist
+WebSocket: User connected: superadmin (super_admin)
+5:45:53 AM [express] GET /api/registration-forms/bootfete-2k26-ohVsMjNm 200 in 70ms :: {"id":"02eb7e…
+5:45:53 AM [express] GET /api/auth/me 304 in 201ms :: {"id":"cbe169c7-8ceb-4e34-be2c-53a8b2ab173b","…
+5:45:42 AM [express] GET /api/registration-forms/all 304 in 166ms :: [{"id":"02eb7e37-7654-4201-9075…
+5:45:39 AM [express] GET /api/users 304 in 331ms :: [{"id":"3c52affb-e330-4276-b83d-92010267d2af","u…
+WebSocket: User connected: superadmin (super_admin)
+WebSocket: User disconnected: superadmin
+5:45:23 AM [express] serving on port 10000
+5:45:23 AM [express] WebSocket server initialized
+   From: BootFeet 2K26 <noreply@turfingworld.in>
+   User: noreply@turfingworld.in
+   Port: 465 (SSL)
+   Host: mail.turfingworld.in
+✅ Email service initialized with SMTP configuration:
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+     ==> Available at your primary URL https://sympoazzi.onrender.com
+     ==> 
+     ==> ///////////////////////////////////////////////////////////
+     ==> 
+     ==> Your service is live 🎉
+> cross-env NODE_ENV=production node dist/index.js
+> rest-express@1.0.0 start
+==> Running 'npm run start'
+     ==> Docs on specifying a port: https://render.com/docs/web-services#port-binding
+     ==> No open ports detected, continuing to scan...
