@@ -68,6 +68,7 @@ export const rounds = pgTable("rounds", {
   status: text("status").notNull().default('not_started'), // not_started, in_progress, completed
   startedAt: timestamp("started_at"), // When admin starts the round
   endedAt: timestamp("ended_at"), // When admin ends the round
+  resultsPublished: boolean("results_published").notNull().default(false), // Admin can publish results
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

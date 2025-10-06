@@ -36,6 +36,7 @@ export interface IStorage {
   createRound(round: InsertRound): Promise<Round>;
   updateRound(id: string, round: Partial<InsertRound>): Promise<Round | undefined>;
   updateRoundStatus(roundId: string, status: 'not_started' | 'in_progress' | 'completed', timestamp?: Date): Promise<Round | undefined>;
+  updateRoundResultsPublished(roundId: string, published: boolean): Promise<Round | undefined>;
   deleteRound(id: string): Promise<void>;
 
   getRoundRules(roundId: string): Promise<RoundRules | undefined>;
@@ -325,6 +326,17 @@ export class DatabaseStorage implements IStorage {
       return round;
     }
     return undefined;
+  }
+
+  async updateRoundResultsPublished(roundId: string, published: boolean): Promise<Round | undefined> {
+    const [round] = await db.update(rounds)
+      .set({ 
+        resultsPublished: published,
+        updatedAt: new Date()
+      })
+      .where(eq(rounds.id, roundId))
+      .returning();
+    return round;
   }
 
   async deleteRound(id: string): Promise<void> {

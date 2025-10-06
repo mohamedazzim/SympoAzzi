@@ -989,6 +989,34 @@ export async function registerRoutes(app: Express): Promise<Server> {
     },
   )
 
+  app.post(
+    "/api/rounds/:roundId/publish-results",
+    requireAuth,
+    requireEventAdmin,
+    requireRoundAccess,
+    async (req: AuthRequest, res: Response) => {
+      try {
+        const round = await storage.getRound(req.params.roundId)
+        if (!round) {
+          return res.status(404).json({ message: "Round not found" })
+        }
+
+        const updatedRound = await storage.updateRoundResultsPublished(req.params.roundId, true)
+
+        // Notify via WebSocket
+        WebSocketService.notifyRoundStatus(round.eventId, req.params.roundId, round.status, updatedRound)
+
+        res.json({
+          message: "Results published successfully",
+          round: updatedRound,
+        })
+      } catch (error) {
+        console.error("Publish results error:", error)
+        res.status(500).json({ message: "Internal server error" })
+      }
+    },
+  )
+
   app.get("/api/rounds/:roundId/rules", requireAuth, requireRoundAccess, async (req: AuthRequest, res: Response) => {
     try {
       let rules = await storage.getRoundRules(req.params.roundId)
@@ -1348,9 +1376,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const event = round ? await storage.getEvent(round.eventId) : null
 
       // Check if results should be shown:
-      // 1. Event has ended (event.endDate passed), OR
+      // Results are shown when BOTH conditions are met:
+      // 1. Admin has published results (round.resultsPublished === true), AND
       // 2. Participant's attempt duration has elapsed (current time > attempt.startedAt + duration)
-      const eventHasEnded = event?.endDate ? new Date() > new Date(event.endDate) : false
       
       // Calculate if the participant's attempt duration has elapsed
       // Use attempt.startedAt (when participant started) not round.startedAt (when admin started round)
@@ -1360,7 +1388,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         attemptDurationElapsed = Date.now() > attemptEndTime
       }
       
-      const eventEnded = eventHasEnded || attemptDurationElapsed
+      const resultsPublished = round?.resultsPublished ?? false
+      const eventEnded = resultsPublished && attemptDurationElapsed
       
       const isAdmin = req.user!.role === "super_admin" || req.user!.role === "event_admin"
 
@@ -1911,6 +1940,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
       const email = extractEmail(userData)
       const fullName = extractFullName(userData)
+
+      const existingUser = await storage.getUserByEmail(email)
+      if (existingUser) {
+        return res.status(400).json({ message: "A user with this email already exists. Please use a different email or contact support." })
+      }
 
       const hashedPassword = await bcrypt.hash(password, 10)
       const username = `${email.split('@')[0]}_${nanoid(6)}`.toLowerCase()
