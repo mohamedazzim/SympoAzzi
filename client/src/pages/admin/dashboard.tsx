@@ -95,7 +95,7 @@ export default function AdminDashboard() {
             </CardContent>
           </Card>
 
-          <Card className="cursor-pointer hover:shadow-lg transition-shadow" data-testid="card-settings">
+          <Card className="cursor-pointer hover:shadow-lg transition-shadow" onClick={() => setLocation('/admin/settings')} data-testid="card-settings">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Settings</CardTitle>
               <Settings className="h-4 w-4 text-muted-foreground" />
