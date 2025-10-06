@@ -10,6 +10,16 @@ import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
 import { Save, Mail, Bell, Shield, Database } from 'lucide-react';
 import AdminLayout from '@/components/layouts/AdminLayout';
+import { useQuery } from '@tanstack/react-query';
+
+interface SystemSettings {
+  smtp: {
+    configured: boolean;
+    host: string | null;
+    port: string | null;
+    from: string | null;
+  };
+}
 
 export default function AdminSettings() {
   const { user, isLoading } = useAuth();
@@ -20,6 +30,11 @@ export default function AdminSettings() {
   const [registrationNotifications, setRegistrationNotifications] = useState(true);
   const [eventUpdates, setEventUpdates] = useState(true);
   const [systemAlerts, setSystemAlerts] = useState(true);
+
+  const { data: systemSettings, isLoading: settingsLoading } = useQuery<SystemSettings>({
+    queryKey: ['/api/admin/system-settings'],
+    enabled: !!user && user.role === 'super_admin',
+  });
 
   useEffect(() => {
     if (!isLoading && (!user || user.role !== 'super_admin')) {
@@ -60,41 +75,87 @@ export default function AdminSettings() {
               <CardDescription>Configure email server and sending preferences</CardDescription>
             </CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  <Label htmlFor="smtp-host">SMTP Host</Label>
-                  <Input
-                    id="smtp-host"
-                    placeholder="mail.example.com"
-                    defaultValue={import.meta.env.VITE_SMTP_HOST || ""}
-                    disabled
-                    data-testid="input-smtp-host"
-                  />
-                  <p className="text-xs text-gray-500">Configure via environment variables</p>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="smtp-port">SMTP Port</Label>
-                  <Input
-                    id="smtp-port"
-                    placeholder="465"
-                    defaultValue={import.meta.env.VITE_SMTP_PORT || ""}
-                    disabled
-                    data-testid="input-smtp-port"
-                  />
-                  <p className="text-xs text-gray-500">Configure via environment variables</p>
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="smtp-from">From Address</Label>
-                <Input
-                  id="smtp-from"
-                  placeholder="BootFeet 2K26 <noreply@example.com>"
-                  defaultValue={import.meta.env.VITE_SMTP_FROM || ""}
-                  disabled
-                  data-testid="input-smtp-from"
-                />
-                <p className="text-xs text-gray-500">Configure via environment variables</p>
-              </div>
+              {settingsLoading ? (
+                <div className="text-sm text-gray-500">Loading settings...</div>
+              ) : systemSettings?.smtp?.configured ? (
+                <>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp-host">SMTP Host</Label>
+                      <Input
+                        id="smtp-host"
+                        value={systemSettings.smtp.host || ""}
+                        disabled
+                        data-testid="input-smtp-host"
+                      />
+                      <p className="text-xs text-green-600">✓ Configured</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp-port">SMTP Port</Label>
+                      <Input
+                        id="smtp-port"
+                        value={systemSettings.smtp.port || ""}
+                        disabled
+                        data-testid="input-smtp-port"
+                      />
+                      <p className="text-xs text-green-600">✓ Configured</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="smtp-from">From Address</Label>
+                    <Input
+                      id="smtp-from"
+                      value={systemSettings.smtp.from || "BootFeet 2K26 <noreply@bootfeet.com>"}
+                      disabled
+                      data-testid="input-smtp-from"
+                    />
+                    <p className="text-xs text-green-600">✓ Configured</p>
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
+                    <p className="text-sm text-yellow-800">
+                      ⚠️ SMTP is not configured. Emails will be logged but not sent.
+                    </p>
+                    <p className="text-xs text-yellow-700 mt-1">
+                      To enable email sending, configure these secrets: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp-host">SMTP Host</Label>
+                      <Input
+                        id="smtp-host"
+                        placeholder="smtp.gmail.com"
+                        disabled
+                        data-testid="input-smtp-host"
+                      />
+                      <p className="text-xs text-gray-500">Not configured</p>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="smtp-port">SMTP Port</Label>
+                      <Input
+                        id="smtp-port"
+                        placeholder="587"
+                        disabled
+                        data-testid="input-smtp-port"
+                      />
+                      <p className="text-xs text-gray-500">Not configured</p>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="smtp-from">From Address</Label>
+                    <Input
+                      id="smtp-from"
+                      placeholder="BootFeet 2K26 <noreply@bootfeet.com>"
+                      disabled
+                      data-testid="input-smtp-from"
+                    />
+                    <p className="text-xs text-gray-500">Not configured</p>
+                  </div>
+                </>
+              )}
             </CardContent>
           </Card>
 

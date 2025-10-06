@@ -204,6 +204,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   })
 
+  app.get("/api/admin/system-settings", requireAuth, requireSuperAdmin, async (req: AuthRequest, res: Response) => {
+    try {
+      const smtpConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
+      res.json({
+        smtp: {
+          configured: smtpConfigured,
+          host: smtpConfigured ? process.env.SMTP_HOST : null,
+          port: smtpConfigured ? process.env.SMTP_PORT || '587' : null,
+          from: smtpConfigured ? process.env.SMTP_FROM || null : null,
+        }
+      })
+    } catch (error) {
+      console.error("Get system settings error:", error)
+      res.status(500).json({ message: "Internal server error" })
+    }
+  })
+
   app.post("/api/auth/register", async (req: Request, res: Response) => {
     try {
       const { username, password, email, fullName, role } = req.body
