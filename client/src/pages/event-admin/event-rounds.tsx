@@ -16,7 +16,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
-import { ArrowLeft, Plus, Edit, FileQuestion, Clock, Play, Square, RotateCcw } from 'lucide-react';
+import { ArrowLeft, Plus, Edit, FileQuestion, Clock, Play, Square, RotateCcw, Eye } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import { apiRequest, queryClient } from '@/lib/queryClient';
 import type { Round, Event } from '@shared/schema';
@@ -190,6 +190,26 @@ export default function EventRoundsPage() {
     }
   });
 
+  const publishResultsMutation = useMutation({
+    mutationFn: async (roundId: string) => {
+      return apiRequest('POST', `/api/rounds/${roundId}/publish-results`, {});
+    },
+    onSuccess: () => {
+      toast({
+        title: 'Results Published',
+        description: 'Participants can now view their results',
+      });
+      queryClient.invalidateQueries({ queryKey: ['/api/events', eventId, 'rounds'] });
+    },
+    onError: () => {
+      toast({
+        title: 'Error',
+        description: 'Failed to publish results',
+        variant: 'destructive',
+      });
+    }
+  });
+
   const getStatusBadge = (status: string) => {
     const variants: Record<string, 'default' | 'secondary' | 'destructive'> = {
       not_started: 'secondary',
@@ -326,6 +346,20 @@ export default function EventRoundsPage() {
                             >
                               <Square className="h-4 w-4 mr-1" />
                               End
+                            </Button>
+                          )}
+                          {round.status === 'completed' && !round.resultsPublished && (
+                            <Button
+                              variant="default"
+                              size="sm"
+                              onClick={() => publishResultsMutation.mutate(round.id)}
+                              disabled={publishResultsMutation.isPending}
+                              data-testid={`button-publish-results-${round.id}`}
+                              title="Publish Results"
+                              className="bg-green-600 hover:bg-green-700"
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Publish Results
                             </Button>
                           )}
                           <Button
