@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useQuery, useMutation } from '@tanstack/react-query';
 import AdminLayout from '@/components/layouts/AdminLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -13,10 +13,11 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from 
 import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { useToast } from '@/hooks/use-toast';
-import { Mail, Filter, Download, Eye, Search, Calendar as CalendarIcon } from 'lucide-react';
+import { Mail, Filter, Download, Eye, Search, Calendar as CalendarIcon, Send } from 'lucide-react';
 import { format } from 'date-fns';
 import type { EmailLog } from '@shared/schema';
 import type { DateRange } from 'react-day-picker';
+import { apiRequest, queryClient } from '@/lib/queryClient';
 
 export default function EmailLogsPage() {
   const { toast } = useToast();
@@ -106,6 +107,42 @@ export default function EmailLogsPage() {
     });
   };
 
+  const testEmailMutation = useMutation({
+    mutationFn: async () => {
+      const response = await apiRequest('POST', '/api/test-email', {
+        to: 'azzimandabdullah1@gmail.com',
+        name: 'Test User'
+      });
+      return response;
+    },
+    onSuccess: (data: any) => {
+      queryClient.invalidateQueries({ queryKey: ['/api/email-logs'] });
+      if (data.success) {
+        toast({
+          title: 'Test email sent successfully',
+          description: `Email sent to azzimandabdullah1@gmail.com. Message ID: ${data.messageId || 'N/A'}`,
+        });
+      } else {
+        toast({
+          title: 'Failed to send test email',
+          description: data.error || 'Unknown error occurred',
+          variant: 'destructive'
+        });
+      }
+    },
+    onError: (error: any) => {
+      toast({
+        title: 'Error sending test email',
+        description: error.message || 'Failed to send test email',
+        variant: 'destructive'
+      });
+    }
+  });
+
+  const handleSendTestEmail = () => {
+    testEmailMutation.mutate();
+  };
+
   const templateTypes = [
     { value: 'all', label: 'All Types' },
     { value: 'registration_approved', label: 'Registration Approved' },
@@ -126,14 +163,26 @@ export default function EmailLogsPage() {
               Monitor and manage all email notifications sent by the system
             </p>
           </div>
-          <Button
-            onClick={exportToCSV}
-            data-testid="button-export-csv"
-            className="flex items-center gap-2"
-          >
-            <Download className="h-4 w-4" />
-            Export to CSV
-          </Button>
+          <div className="flex items-center gap-3">
+            <Button
+              onClick={handleSendTestEmail}
+              disabled={testEmailMutation.isPending}
+              data-testid="button-test-email"
+              className="flex items-center gap-2"
+              variant="outline"
+            >
+              <Send className="h-4 w-4" />
+              {testEmailMutation.isPending ? 'Sending...' : 'Test Email'}
+            </Button>
+            <Button
+              onClick={exportToCSV}
+              data-testid="button-export-csv"
+              className="flex items-center gap-2"
+            >
+              <Download className="h-4 w-4" />
+              Export to CSV
+            </Button>
+          </div>
         </div>
 
         <Card>
