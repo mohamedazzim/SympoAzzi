@@ -1632,7 +1632,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/participants/my-attempts", requireAuth, requireParticipant, async (req: AuthRequest, res: Response) => {
     try {
       const attempts = await storage.getTestAttemptsByUser(req.user!.id)
-      res.json(attempts)
+      
+      const attemptsWithRounds = await Promise.all(
+        attempts.map(async (attempt) => {
+          const round = await storage.getRound(attempt.roundId)
+          
+          const attemptDurationElapsed = attempt.startedAt && round?.duration
+            ? Date.now() > new Date(attempt.startedAt).getTime() + (round.duration * 60 * 1000)
+            : false
+          
+          const resultsPublished = round?.resultsPublished ?? false
+          const canViewResults = resultsPublished && attemptDurationElapsed
+          
+          if (!canViewResults && attempt.status === 'completed') {
+            return {
+              ...attempt,
+              totalScore: null,
+              maxScore: null,
+              round
+            }
+          }
+          
+          return { ...attempt, round }
+        })
+      )
+      
+      res.json(attemptsWithRounds)
     } catch (error) {
       console.error("Get my attempts error:", error)
       res.status(500).json({ message: "Internal server error" })
@@ -1643,6 +1668,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/rounds/:roundId/leaderboard", requireAuth, async (req: AuthRequest, res: Response) => {
     try {
       const { roundId } = req.params
+      const round = await storage.getRound(roundId)
+      
+      if (!round) {
+        return res.status(404).json({ message: "Round not found" })
+      }
+      
+      const isAdmin = req.user!.role === "super_admin" || req.user!.role === "event_admin"
+      
+      if (!isAdmin) {
+        if (!round.resultsPublished) {
+          return res.json([])
+        }
+        
+        if (req.user!.id) {
+          const userAttempt = await storage.getTestAttemptByUserAndRound(req.user!.id, roundId)
+          if (userAttempt && userAttempt.startedAt && round.duration) {
+            const attemptDurationElapsed = Date.now() > new Date(userAttempt.startedAt).getTime() + (round.duration * 60 * 1000)
+            if (!attemptDurationElapsed) {
+              return res.json([])
+            }
+          }
+        }
+      }
+      
       const leaderboard = await storage.getRoundLeaderboard(roundId)
       res.json(leaderboard)
     } catch (error) {
@@ -1654,6 +1703,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/events/:eventId/leaderboard", requireAuth, async (req: AuthRequest, res: Response) => {
     try {
       const { eventId } = req.params
+      const rounds = await storage.getRoundsByEvent(eventId)
+      
+      const isAdmin = req.user!.role === "super_admin" || req.user!.role === "event_admin"
+      
+      if (!isAdmin) {
+        const allResultsPublished = rounds.every(round => round.resultsPublished)
+        
+        if (!allResultsPublished) {
+          return res.json([])
+        }
+        
+        if (req.user!.id) {
+          for (const round of rounds) {
+            const userAttempt = await storage.getTestAttemptByUserAndRound(req.user!.id, round.id)
+            if (userAttempt && userAttempt.startedAt && round.duration) {
+              const attemptDurationElapsed = Date.now() > new Date(userAttempt.startedAt).getTime() + (round.duration * 60 * 1000)
+              if (!attemptDurationElapsed) {
+                return res.json([])
+              }
+            }
+          }
+        }
+      }
+      
       const leaderboard = await storage.getEventLeaderboard(eventId)
       res.json(leaderboard)
     } catch (error) {
