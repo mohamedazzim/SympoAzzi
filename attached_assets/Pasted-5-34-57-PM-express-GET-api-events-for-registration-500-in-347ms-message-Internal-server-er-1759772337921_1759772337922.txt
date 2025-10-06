@@ -1,0 +1,46 @@
+5:34:57 PM [express] GET /api/events/for-registration 500 in 347ms :: {"message":"Internal server er…
+}
+  sourceError: undefined
+  routine: 'errorMissingColumn',
+  line: '3716',
+  file: 'parse_relation.c',
+  constraint: undefined,
+  dataType: undefined,
+  column: undefined,
+  table: undefined,
+  schema: undefined,
+  where: undefined,
+  internalQuery: undefined,
+  internalPosition: undefined,
+  position: '139',
+  hint: undefined,
+  detail: undefined,
+  code: '42703',
+  severity: 'ERROR',
+    at async file:///opt/render/project/src/dist/index.js:2704:32 {
+    at async Promise.all (index 0)
+    at async file:///opt/render/project/src/dist/index.js:2706:27
+    at async DatabaseStorage.getRoundsByEvent (file:///opt/render/project/src/dist/index.js:454:12)
+    at async NeonHttpPreparedQuery.execute (file:///opt/render/project/src/node_modules/drizzle-orm/neon-http/session.js:40:20)
+    at process.processTicksAndRejections (node:internal/process/task_queues:105:5)
+    at execute (file:///opt/render/project/src/node_modules/@neondatabase/serverless/index.mjs:1556:55)
+Get events for registration error: NeonDbError: column "results_published" does not exist
+5:34:57 PM [express] GET /api/registration-forms/bootfete-2k26-ohVsMjNm 200 in 205ms :: {"id":"02eb7…
+5:34:50 PM [express] GET /api/registration-forms/all 304 in 423ms :: [{"id":"02eb7e37-7654-4201-9075…
+5:34:28 PM [express] GET /api/users 304 in 137ms :: [{"id":"3c52affb-e330-4276-b83d-92010267d2af","u…
+5:34:26 PM [express] GET /api/registrations 304 in 155ms :: []
+5:34:23 PM [express] GET /api/reports 304 in 416ms :: []
+5:34:08 PM [express] GET /api/email-logs 304 in 434ms :: []
+WebSocket: User connected: superadmin (super_admin)
+5:33:45 PM [express] GET /api/events 304 in 298ms :: [{"id":"85d2af1c-a88a-471a-acc1-446fcabce1b3","…
+5:33:44 PM [express] GET /api/auth/me 304 in 1085ms :: {"id":"cbe169c7-8ceb-4e34-be2c-53a8b2ab173b",…
+5:33:38 PM [express] serving on port 10000
+5:33:38 PM [express] WebSocket server initialized
+   From: BootFeet 2K26 <noreply@turfingworld.in>
+   User: noreply@turfingworld.in
+   Port: 465 (SSL)
+   Host: mail.turfingworld.in
+✅ Email service initialized with SMTP configuration:
+> cross-env NODE_ENV=production node dist/index.js
+> rest-express@1.0.0 start
+==> Running 'npm run start'
