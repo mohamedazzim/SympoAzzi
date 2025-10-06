@@ -1,5 +1,5 @@
-import nodemailer from 'nodemailer';
-import type { Transporter } from 'nodemailer';
+import '../config/resend.config';
+import { Resend } from 'resend';
 import { storage } from '../storage';
 import {
   generateRegistrationApprovedEmail,
@@ -17,50 +17,25 @@ interface EmailOptions {
 }
 
 class EmailService {
-  private transporter: Transporter | null;
+  private resend: Resend | null;
   private isDevelopmentMode: boolean;
+  private fromEmail: string;
   
   constructor() {
-    // Check if SMTP credentials are configured
-    const hasSmtpConfig = process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS;
-    this.isDevelopmentMode = !hasSmtpConfig;
+    const resendApiKey = process.env.RESEND_API_KEY;
+    this.isDevelopmentMode = !resendApiKey;
     
-    if (hasSmtpConfig) {
-      // Production mode: use real SMTP
-      const port = parseInt(process.env.SMTP_PORT || '587');
-      const isSecure = port === 465;
-      
-      this.transporter = nodemailer.createTransport({
-        host: process.env.SMTP_HOST,
-        port: port,
-        secure: isSecure,
-        auth: {
-          user: process.env.SMTP_USER,
-          pass: process.env.SMTP_PASS
-        },
-        connectionTimeout: 30000,
-        greetingTimeout: 30000,
-        socketTimeout: 60000,
-        tls: {
-          rejectUnauthorized: false,
-          minVersion: 'TLSv1.2'
-        }
-      });
-      console.log('✅ Email service initialized with SMTP configuration:');
-      console.log(`   Host: ${process.env.SMTP_HOST}`);
-      console.log(`   Port: ${port} (${isSecure ? 'SSL' : 'TLS'})`);
-      console.log(`   User: ${process.env.SMTP_USER}`);
-      console.log(`   From: ${process.env.SMTP_FROM || '"BootFeet 2K26" <noreply@bootfeet.com>'}`);
+    if (resendApiKey) {
+      this.resend = new Resend(resendApiKey);
+      this.fromEmail = process.env.RESEND_FROM_EMAIL || 'BootFeet 2K26 <onboarding@resend.dev>';
+      console.log('✅ Email service initialized with Resend:');
+      console.log(`   API Key: ${resendApiKey.substring(0, 10)}...`);
+      console.log(`   From: ${this.fromEmail}`);
     } else {
-      // Development mode: log emails instead of sending
-      this.transporter = null;
+      this.resend = null;
+      this.fromEmail = 'BootFeet 2K26 <noreply@bootfeet.com>';
       console.log('⚠️  Email service running in DEVELOPMENT MODE - emails will be logged, not sent');
-      console.log('   Missing SMTP configuration. Set these secrets to enable email sending:');
-      if (!process.env.SMTP_HOST) console.log('   ❌ SMTP_HOST');
-      if (!process.env.SMTP_PORT) console.log('   ⚠️  SMTP_PORT (optional, defaults to 587)');
-      if (!process.env.SMTP_USER) console.log('   ❌ SMTP_USER');
-      if (!process.env.SMTP_PASS) console.log('   ❌ SMTP_PASS');
-      if (!process.env.SMTP_FROM) console.log('   ⚠️  SMTP_FROM (optional)');
+      console.log('   Missing RESEND_API_KEY. Set this secret to enable email sending.');
     }
   }
   
@@ -68,46 +43,25 @@ class EmailService {
     const errorString = String(error).toLowerCase();
     const errorMessage = error instanceof Error ? error.message : '';
     
-    // Authentication errors
-    if (errorString.includes('authentication') || errorString.includes('auth failed') || 
-        errorString.includes('invalid login') || errorString.includes('535')) {
+    if (errorString.includes('authentication') || errorString.includes('auth') || 
+        errorString.includes('invalid') || errorString.includes('unauthorized')) {
       return 'AUTHENTICATION_FAILED';
     }
     
-    // Connection errors
-    if (errorString.includes('econnrefused') || errorString.includes('connection refused')) {
-      return 'CONNECTION_REFUSED';
-    }
-    if (errorString.includes('econnreset') || errorString.includes('connection reset')) {
-      return 'CONNECTION_RESET';
-    }
-    if (errorString.includes('socket hang up')) {
-      return 'SOCKET_HANG_UP';
+    if (errorString.includes('rate limit') || errorString.includes('too many')) {
+      return 'RATE_LIMITED';
     }
     
-    // Timeout errors
     if (errorString.includes('timeout') || errorString.includes('etimedout')) {
       return 'TIMEOUT';
     }
     
-    // TLS/SSL errors
-    if (errorString.includes('tls') || errorString.includes('ssl') || errorString.includes('certificate')) {
-      return 'TLS_SSL_ERROR';
-    }
-    
-    // DNS errors
-    if (errorString.includes('enotfound') || errorString.includes('getaddrinfo')) {
-      return 'DNS_LOOKUP_FAILED';
-    }
-    
-    // Network errors
-    if (errorString.includes('network')) {
+    if (errorString.includes('network') || errorString.includes('econnrefused')) {
       return 'NETWORK_ERROR';
     }
     
-    // SMTP protocol errors
-    if (error.responseCode || errorString.match(/\b(5\d\d)\b/)) {
-      return 'SMTP_PROTOCOL_ERROR';
+    if (errorString.includes('validation') || errorString.includes('invalid email')) {
+      return 'VALIDATION_ERROR';
     }
     
     return 'UNKNOWN_ERROR';
@@ -118,39 +72,30 @@ class EmailService {
     
     switch (category) {
       case 'AUTHENTICATION_FAILED':
-        return `Authentication failed. Check SMTP_USER and SMTP_PASS credentials. Error: ${errorMessage}`;
-      case 'CONNECTION_REFUSED':
-        return `Connection refused to SMTP server ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}. Verify host and port are correct.`;
-      case 'CONNECTION_RESET':
-        return `Connection was reset by the SMTP server. This may indicate firewall issues or server problems.`;
-      case 'SOCKET_HANG_UP':
-        return `Connection was unexpectedly closed by the server. Check server stability.`;
+        return `Resend authentication failed. Check RESEND_API_KEY. Error: ${errorMessage}`;
+      case 'RATE_LIMITED':
+        return `Rate limit exceeded. Please try again later. Error: ${errorMessage}`;
       case 'TIMEOUT':
-        return `Connection timed out while trying to reach ${process.env.SMTP_HOST}:${process.env.SMTP_PORT}. Check network connectivity and firewall rules.`;
-      case 'TLS_SSL_ERROR':
-        return `TLS/SSL error. Check if port ${process.env.SMTP_PORT} requires SSL (465) or TLS (587). Error: ${errorMessage}`;
-      case 'DNS_LOOKUP_FAILED':
-        return `DNS lookup failed for ${process.env.SMTP_HOST}. Verify the SMTP_HOST is correct.`;
+        return `Request timed out. Check network connectivity. Error: ${errorMessage}`;
       case 'NETWORK_ERROR':
         return `Network error occurred: ${errorMessage}`;
-      case 'SMTP_PROTOCOL_ERROR':
-        return `SMTP protocol error. Server response: ${errorMessage}`;
+      case 'VALIDATION_ERROR':
+        return `Email validation error: ${errorMessage}`;
       default:
         return errorMessage;
     }
   }
 
   private async sendWithRetry(
-    mailOptions: any,
+    emailData: { from: string; to: string; subject: string; html: string },
     maxRetries: number = 3,
     attempt: number = 1
   ): Promise<{ success: boolean; messageId?: string; error?: string; retryCount: number; errorCategory?: string }> {
-    // Development mode: log email instead of sending
-    if (this.isDevelopmentMode || !this.transporter) {
+    if (this.isDevelopmentMode || !this.resend) {
       console.log('\n📧 [DEV MODE] Email would be sent:');
-      console.log('   To:', mailOptions.to);
-      console.log('   From:', mailOptions.from);
-      console.log('   Subject:', mailOptions.subject);
+      console.log('   To:', emailData.to);
+      console.log('   From:', emailData.from);
+      console.log('   Subject:', emailData.subject);
       console.log('   (Email content logged to email_logs table)\n');
       return { 
         success: true, 
@@ -159,12 +104,16 @@ class EmailService {
       };
     }
     
-    // Production mode: actually send email
     try {
-      console.log(`📤 Attempting to send email to ${mailOptions.to} (attempt ${attempt}/${maxRetries})`);
-      const info = await this.transporter.sendMail(mailOptions);
-      console.log(`✅ Email sent successfully! Message ID: ${info.messageId}`);
-      return { success: true, messageId: info.messageId, retryCount: attempt - 1 };
+      console.log(`📤 Attempting to send email to ${emailData.to} (attempt ${attempt}/${maxRetries})`);
+      const result = await this.resend.emails.send(emailData);
+      
+      if (result.error) {
+        throw new Error(result.error.message || 'Unknown Resend error');
+      }
+      
+      console.log(`✅ Email sent successfully! Message ID: ${result.data?.id}`);
+      return { success: true, messageId: result.data?.id, retryCount: attempt - 1 };
     } catch (error) {
       const errorCategory = this.categorizeError(error);
       const errorDetails = this.getErrorDetails(error, errorCategory);
@@ -179,7 +128,7 @@ class EmailService {
         const delayMs = Math.pow(2, attempt - 1) * 1000;
         console.log(`   🔄 Error is retryable. Retrying in ${delayMs}ms...`);
         await new Promise(resolve => setTimeout(resolve, delayMs));
-        return this.sendWithRetry(mailOptions, maxRetries, attempt + 1);
+        return this.sendWithRetry(emailData, maxRetries, attempt + 1);
       }
       
       console.error(`   ❌ Max retries reached or error is not retryable. Giving up.`);
@@ -197,31 +146,6 @@ class EmailService {
     
     const errorString = String(error).toLowerCase();
     
-    // Check for SMTP 4xx status codes (400-499 range)
-    // These indicate temporary failures that should be retried
-    const smtpCodeMatch = errorString.match(/\b(4\d\d)\b/);
-    if (smtpCodeMatch) {
-      const code = parseInt(smtpCodeMatch[1]);
-      if (code >= 400 && code <= 499) {
-        return true;
-      }
-    }
-    
-    // Check error object for responseCode or code properties
-    if (error.responseCode) {
-      const code = parseInt(String(error.responseCode));
-      if (code >= 400 && code <= 499) {
-        return true;
-      }
-    }
-    
-    if (error.code && typeof error.code === 'number') {
-      if (error.code >= 400 && error.code <= 499) {
-        return true;
-      }
-    }
-    
-    // Check for common transient error patterns
     const retryablePatterns = [
       'network',
       'timeout',
@@ -231,6 +155,7 @@ class EmailService {
       'temporary failure',
       'connection timeout',
       'socket hang up',
+      '5', 
     ];
     
     return retryablePatterns.some(pattern => errorString.includes(pattern));
@@ -241,21 +166,20 @@ class EmailService {
     templateType: string,
     recipientName?: string
   ): Promise<{ success: boolean; messageId?: string; error?: string }> {
-    const mailOptions = {
-      from: process.env.SMTP_FROM || '"BootFeet 2K26" <noreply@bootfeet.com>',
+    const emailData = {
+      from: this.fromEmail,
       to: options.to,
       subject: options.subject,
       html: options.html
     };
     
-    const result = await this.sendWithRetry(mailOptions);
+    const result = await this.sendWithRetry(emailData);
     
     const metadata = {
       ...(options.metadata || {}),
       retryCount: result.retryCount
     };
     
-    // Log email to database (non-blocking - don't fail email sending if logging fails)
     try {
       await storage.createEmailLog({
         recipientEmail: options.to,
@@ -277,7 +201,6 @@ class EmailService {
         console.log(`✅ Email sent successfully to ${options.to} (${templateType})`);
       }
       
-      // Notify superadmin about email activity (non-blocking)
       const eventName = options.metadata?.eventName || 'N/A';
       this.notifySuperAdmin(
         templateType,
@@ -383,7 +306,6 @@ class EmailService {
     additionalDetails: Record<string, any>
   ): Promise<void> {
     try {
-      // Get superadmin email
       const superadmins = await storage.getUsers();
       const superadmin = superadmins.find(u => u.role === 'super_admin');
       
@@ -400,21 +322,22 @@ class EmailService {
         additionalDetails
       );
 
-      const mailOptions = {
-        from: process.env.SMTP_FROM || '"BootFeet 2K26" <noreply@bootfeet.com>',
+      const emailData = {
+        from: this.fromEmail,
         to: superadmin.email,
         subject: `📧 Email Activity: ${emailType} sent to ${recipientName}`,
         html
       };
 
-      // Send notification (don't use retry to avoid recursive notifications)
-      if (this.isDevelopmentMode || !this.transporter) {
+      if (this.isDevelopmentMode || !this.resend) {
         console.log('\n📧 [DEV MODE] Admin notification would be sent:');
         console.log('   To:', superadmin.email);
-        console.log('   Subject:', mailOptions.subject);
+        console.log('   Subject:', emailData.subject);
       } else {
-        await this.transporter.sendMail(mailOptions);
-        console.log(`✅ Admin notification sent to ${superadmin.email}`);
+        const result = await this.resend.emails.send(emailData);
+        if (!result.error) {
+          console.log(`✅ Admin notification sent to ${superadmin.email}`);
+        }
       }
     } catch (error) {
       console.error('❌ Failed to send admin notification:', error instanceof Error ? error.message : 'Unknown error');

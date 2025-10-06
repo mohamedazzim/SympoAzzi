@@ -206,13 +206,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   app.get("/api/admin/system-settings", requireAuth, requireSuperAdmin, async (req: AuthRequest, res: Response) => {
     try {
-      const smtpConfigured = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS)
+      const resendConfigured = !!process.env.RESEND_API_KEY
       res.json({
-        smtp: {
-          configured: smtpConfigured,
-          host: smtpConfigured ? process.env.SMTP_HOST : null,
-          port: smtpConfigured ? process.env.SMTP_PORT || '587' : null,
-          from: smtpConfigured ? process.env.SMTP_FROM || null : null,
+        email: {
+          provider: 'resend',
+          configured: resendConfigured,
+          apiKey: resendConfigured ? process.env.RESEND_API_KEY?.substring(0, 10) + '...' : null,
+          from: resendConfigured ? process.env.RESEND_FROM_EMAIL || null : null,
         }
       })
     } catch (error) {

@@ -13,10 +13,10 @@ import AdminLayout from '@/components/layouts/AdminLayout';
 import { useQuery } from '@tanstack/react-query';
 
 interface SystemSettings {
-  smtp: {
+  email: {
+    provider: string;
     configured: boolean;
-    host: string | null;
-    port: string | null;
+    apiKey: string | null;
     from: string | null;
   };
 }
@@ -77,37 +77,38 @@ export default function AdminSettings() {
             <CardContent className="space-y-4">
               {settingsLoading ? (
                 <div className="text-sm text-gray-500">Loading settings...</div>
-              ) : systemSettings?.smtp?.configured ? (
+              ) : systemSettings?.email?.configured ? (
                 <>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="smtp-host">SMTP Host</Label>
+                      <Label htmlFor="email-provider">Email Provider</Label>
                       <Input
-                        id="smtp-host"
-                        value={systemSettings.smtp.host || ""}
+                        id="email-provider"
+                        value={systemSettings.email.provider?.toUpperCase() || "RESEND"}
                         disabled
-                        data-testid="input-smtp-host"
+                        data-testid="input-email-provider"
                       />
                       <p className="text-xs text-green-600">✓ Configured</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="smtp-port">SMTP Port</Label>
+                      <Label htmlFor="email-apikey">API Key</Label>
                       <Input
-                        id="smtp-port"
-                        value={systemSettings.smtp.port || ""}
+                        id="email-apikey"
+                        value={systemSettings.email.apiKey || ""}
                         disabled
-                        data-testid="input-smtp-port"
+                        type="password"
+                        data-testid="input-email-apikey"
                       />
                       <p className="text-xs text-green-600">✓ Configured</p>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="smtp-from">From Address</Label>
+                    <Label htmlFor="email-from">From Address</Label>
                     <Input
-                      id="smtp-from"
-                      value={systemSettings.smtp.from || "BootFeet 2K26 <noreply@bootfeet.com>"}
+                      id="email-from"
+                      value={systemSettings.email.from || "BootFeet 2K26 <noreply@bootfeet.com>"}
                       disabled
-                      data-testid="input-smtp-from"
+                      data-testid="input-email-from"
                     />
                     <p className="text-xs text-green-600">✓ Configured</p>
                   </div>
@@ -116,36 +117,37 @@ export default function AdminSettings() {
                 <>
                   <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4 mb-4">
                     <p className="text-sm text-yellow-800">
-                      ⚠️ SMTP is not configured. Emails will be logged but not sent.
+                      ⚠️ Resend is not configured. Emails will be logged but not sent.
                     </p>
                     <p className="text-xs text-yellow-700 mt-1">
-                      To enable email sending, configure these secrets: SMTP_HOST, SMTP_PORT, SMTP_USER, SMTP_PASS, SMTP_FROM
+                      To enable email sending, configure RESEND_API_KEY and RESEND_FROM_EMAIL
                     </p>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-2">
-                      <Label htmlFor="smtp-host">SMTP Host</Label>
+                      <Label htmlFor="email-provider">Email Provider</Label>
                       <Input
-                        id="smtp-host"
-                        placeholder="smtp.gmail.com"
+                        id="email-provider"
+                        placeholder="Resend"
                         disabled
-                        data-testid="input-smtp-host"
+                        data-testid="input-email-provider"
                       />
                       <p className="text-xs text-gray-500">Not configured</p>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="smtp-port">SMTP Port</Label>
+                      <Label htmlFor="email-apikey">API Key</Label>
                       <Input
-                        id="smtp-port"
-                        placeholder="587"
+                        id="email-apikey"
+                        placeholder="re_..."
                         disabled
-                        data-testid="input-smtp-port"
+                        type="password"
+                        data-testid="input-email-apikey"
                       />
                       <p className="text-xs text-gray-500">Not configured</p>
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label htmlFor="smtp-from">From Address</Label>
+                    <Label htmlFor="email-from">From Address</Label>
                     <Input
                       id="smtp-from"
                       placeholder="BootFeet 2K26 <noreply@bootfeet.com>"
